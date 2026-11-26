@@ -85,7 +85,6 @@ var BTN_HELP = { x: 750, y: 4, w: 35, h: 22 };
 var BTN_SND = { x: 790, y: 4, w: 60, h: 22 };
 var BTN_PAUSE = { x: 855, y: 4, w: 90, h: 22 };
 var BTN_FLIP = { x: 568, y: 110, w: 50, h: 22 }; /* v29 (038): inside the GRIP panel (330-630 x 32-138), bottom-right; was in the title strip in v28 (037) */
-var START_BTN = { x: 350, y: 360, w: 260, h: 56 };
 var RETRY_BTN = { x: 380, y: 330, w: 200, h: 50 };
 var RESUME_BTN = { x: 380, y: 300, w: 200, h: 50 };
 var CLOSE_BTN = { x: 430, y: 400, w: 100, h: 40 };
@@ -133,12 +132,7 @@ var STR = {
     power: 'パワー', throws: '投げた回数', best: 'ベスト', gripLabel: 'ハンガーのどこを持つか',
     angle: '投げる角度', spin: '回転', slow: '遅い', normal: '普通', fast: '速い', cw: '右回り', ccw: '左回り',
     throwBtn: '投げる', needGrip: 'まずハンガーを掴んでね',
-    title: 'ハンガー投げ', subtitle: '（仮）',
-    howto1: '中央のハンガーをクリックして掴む。',
-    howto2: '角度とパワーを決めて、ボタンを長押し→離して投げる。',
-    howto3: '○に引っかけたらその場で成功。3つのステージを全部クリアしたらクリア。',
-    howto4: '掴む場所で回転が変わる。同じ掴み方・角度・パワーなら同じ飛び方。',
-    start: 'スタート', clearTitle: '引っかかった！', clearThrows: '投でクリア！', retry: 'もう一度投げる',
+    clearTitle: '引っかかった！', clearThrows: '投でクリア！', retry: 'もう一度投げる',
     paused: '一時停止中', resume: '再開する', helpTitle: '遊び方', close: '閉じる',
     sndOn: '音 ON', sndOff: '音 OFF', pause: '一時停止', flip: '左右',
     stage: 'ステージ', waiting: '次の投げの準備中...',
@@ -149,12 +143,7 @@ var STR = {
     power: 'POWER', throws: 'THROWS', best: 'BEST', gripLabel: 'Where to hold the hanger',
     angle: 'THROW ANGLE', spin: 'Spin', slow: 'Slow', normal: 'Normal', fast: 'Fast', cw: 'CW', ccw: 'CCW',
     throwBtn: 'THROW', needGrip: 'Grab the hanger first!',
-    title: 'HANGER TOSS', subtitle: '(prototype)',
-    howto1: 'Click the hanger in the center panel to grab it.',
-    howto2: 'Set the angle and power, then hold and release the button to throw.',
-    howto3: 'Hook a band and it counts at once. Clear all 3 stages to win.',
-    howto4: 'The grip point changes the spin. Same grip + angle + power = same flight.',
-    start: 'START', clearTitle: 'HOOKED!', clearThrows: ' throws to clear!', retry: 'Throw again',
+    clearTitle: 'HOOKED!', clearThrows: ' throws to clear!', retry: 'Throw again',
     paused: 'PAUSED', resume: 'Resume', helpTitle: 'How to play', close: 'Close',
     sndOn: 'SND ON', sndOff: 'SND OFF', pause: 'Pause', flip: 'Flip',
     stage: 'Stage', waiting: 'Getting ready...',
@@ -809,7 +798,7 @@ function saveTheme(v) {
   try { if (typeof localStorage !== 'undefined') localStorage.setItem('hanger-toss-theme', String(v)); } catch (e) {}
 }
 var game = {
-  state: 'title',           /* title | playing | clear */
+  state: 'playing',         /* playing | clear */
   phase: 'ready',           /* ready | charging | guts (v26 (035): no 'hanging' phase — a hook resolves immediately, never blocks input) */
   paused: false, muted: false, lang: 'ja',
   angle: 45, power: 0, lastPower: 0,
@@ -1447,25 +1436,7 @@ function draw() {
   drawHUD(ctx);
   drawPlayfield(ctx);
   drawThrowButton(ctx);
-  if (game.state === 'title') {
-    drawOverlay(ctx, 230, 120, 500, 300);
-    ctx.fillStyle = '#ffffff'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.font = 'bold 44px sans-serif';
-    ctx.fillText(t('title'), CV_W / 2, 190);
-    ctx.font = '18px sans-serif'; ctx.fillStyle = theme().label;
-    ctx.fillText(t('subtitle'), CV_W / 2, 225);
-    ctx.font = '15px sans-serif'; ctx.fillStyle = '#ffffff';
-    ctx.fillText(t('howto1'), CV_W / 2, 258);
-    ctx.fillText(t('howto2'), CV_W / 2, 282);
-    ctx.fillText(t('howto3'), CV_W / 2, 306);
-    ctx.fillStyle = theme().label; ctx.font = '14px sans-serif';
-    ctx.fillText(t('best') + ' ' + (game.best === null ? '—' : game.best), CV_W / 2, 336);
-    ctx.fillStyle = '#e8862e';
-    rr(ctx, START_BTN.x, START_BTN.y, START_BTN.w, START_BTN.h, 10); ctx.fill();
-    ctx.fillStyle = '#ffffff'; ctx.font = 'bold 22px sans-serif';
-    ctx.fillText(t('start'), CV_W / 2, START_BTN.y + START_BTN.h / 2 + 1);
-    ctx.textAlign = 'left';
-  } else if (game.state === 'clear') {
+  if (game.state === 'clear') {
     drawOverlay(ctx, 230, 130, 500, 280);
     ctx.fillStyle = '#ffffff'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     ctx.font = 'bold 38px sans-serif';
@@ -1550,10 +1521,6 @@ if (canvas && ctx) {
       }
     }
     if (game.paused) { game.paused = false; return; }
-    if (game.state === 'title') {
-      if (hitRect(p, START_BTN)) startGame();
-      return;
-    }
     if (game.state === 'clear') {
       if (hitRect(p, RETRY_BTN)) retryGame();
       return;
@@ -1599,8 +1566,7 @@ if (canvas && ctx) {
       if (actx && actx.state === 'suspended') actx.resume();
       if (game.showHelp) { game.showHelp = false; return; }
       if (game.paused) { game.paused = false; return; }
-      if (game.state === 'title') startGame();
-      else if (game.state === 'clear') retryGame();
+      if (game.state === 'clear') retryGame();
       else if (game.state === 'playing' && game.phase === 'ready' && game.grip) startCharge();
     } else if (e.code === 'KeyR') {
       if (game.state === 'playing' && (game.phase === 'ready' || game.phase === 'charging') && game.flights.length > 0) abortFlight();
@@ -1613,13 +1579,14 @@ if (canvas && ctx) {
   document.addEventListener('keyup', function (e) {
     if (e.code === 'Space' && game.phase === 'charging') doThrow();
   });
+  startGame(); /* v33 (042): no title/start popup — the game loads straight into playing */
   requestAnimationFrame(loop);
 }
 
 /* ---------- debug / test hook (also used by the Node harness) ---------- */
 if (typeof globalThis !== 'undefined') {
   globalThis.HANGER_TOSS_DEBUG = {
-    version: 'v32',
+    version: 'v33',
     simulateThrow: simulateThrow,
     newFlight: newFlight,
     stepFlight: stepFlight,
