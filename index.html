@@ -85,9 +85,39 @@ var BTN_HELP = { x: 750, y: 4, w: 35, h: 22 };
 var BTN_SND = { x: 790, y: 4, w: 60, h: 22 };
 var BTN_PAUSE = { x: 855, y: 4, w: 90, h: 22 };
 var BTN_FLIP = { x: 568, y: 110, w: 50, h: 22 }; /* v29 (038): inside the GRIP panel (330-630 x 32-158, v34 (043): was 32-138), bottom-right; was in the title strip in v28 (037) */
-var RETRY_BTN = { x: 380, y: 330, w: 200, h: 50 };
 var RESUME_BTN = { x: 380, y: 300, w: 200, h: 50 };
 var CLOSE_BTN = { x: 430, y: 400, w: 100, h: 40 };
+/* v35 (044): mode-select modal buttons (overlay 230,100,500,340; buttons y=310, h=50). */
+var MODE_BTN_N = { x: 250, y: 310, w: 140, h: 50 };
+var MODE_BTN_E = { x: 410, y: 310, w: 140, h: 50 };
+var MODE_BTN_V = { x: 570, y: 310, w: 140, h: 50 };
+var NPC_BTN_W = { x: 250, y: 310, w: 140, h: 50 };
+var NPC_BTN_M = { x: 410, y: 310, w: 140, h: 50 };
+var NPC_BTN_S = { x: 570, y: 310, w: 140, h: 50 };
+var BACK_BTN = { x: 430, y: 375, w: 100, h: 40 };
+var END_RETRY_BTN = { x: 270, y: 310, w: 200, h: 50 };
+var END_MODE_BTN = { x: 490, y: 310, w: 200, h: 50 };
+var VS_RETRY_BTN = { x: 250, y: 310, w: 140, h: 50 };
+var VS_MODE_BTN = { x: 410, y: 310, w: 140, h: 50 };
+var VS_NPC_BTN = { x: 570, y: 310, w: 140, h: 50 };
+/* v35 (044): Endless + VS constants. */
+var ENDLESS_THROWS_PER_RING = 5; /* provisional (仮): throws allowed per ○ in Endless */
+var ENDLESS_T_STEP = 0.10; /* provisional (仮): rod-t increase per Endless hook */
+var ENDLESS_T_MAX = 0.95; /* clamp: furthest ○ on the rod */
+var VS_ROD_A = { x: 650, y: 600 }, VS_ROD_B = { x: 950, y: 200 }; /* v35 (044): VS ○ placement line (centre of the world) */
+var NPC_HAND = { x: WORLD_W - HAND.x, y: HAND.y }; /* v35 (044): 1270,400 — mirrored throw origin */
+var VS_ROUNDS_TO_WIN = 2; /* provisional (仮): best of 3 */
+var VS_ROUND_PAUSE = 1.5; /* provisional (仮): seconds the round result shows */
+var NPC_COLOR = '#ff9f43'; /* v35 (044): the NPC hanger is orange so the two hangers are distinguishable */
+var HH_CONTACT = 2 * WIRE_HALF_WIDTH + 2; /* v35 (044): hanger-vs-hanger wire contact distance (6.0) */
+var HH_COOLDOWN = 0.06; /* v35 (044): seconds before the same pair may collide again */
+var NPC_LEVELS = {
+  weak:   { p: 0.30, tMin: 3.0, tMax: 4.0 },
+  mid:    { p: 0.45, tMin: 2.0, tMax: 3.0 },
+  strong: { p: 0.70, tMin: 1.0, tMax: 2.5 }
+}; /* v35 (044): user-specified — accuracy (good-throw probability) + throw interval per level */
+var NPC_GOOD_ANG_ERR = 1.5; /* v35 (044): good-throw angle perturbation (deg) — tuned by simulation, see harness35 */
+var NPC_GOOD_POW_ERR = 2; /* v35 (044): good-throw power perturbation (%) — tuned by simulation, see harness35 */
 
 /* ---------- small helpers ---------- */
 var D2R = Math.PI / 180, R2D = 180 / Math.PI;
@@ -137,7 +167,15 @@ var STR = {
     sndOn: '音 ON', sndOff: '音 OFF', pause: '一時停止', flip: '左右',
     stage: 'ステージ', waiting: '次の投げの準備中...',
     keys: 'Space：投げる（長押しでパワー）　R：投げ直し　P：一時停止　M：音のON/OFF',
-    helpBody: '1. 中央パネルのハンガーをクリックして掴む（掴む場所で回転が変わる）。\n2. 右の角度ウィンドウをクリック／ドラッグして角度を決める（10°〜80°）。\n3. 下の「投げる」ボタンを長押し→離して投げる。Spaceキーでも同じ。\n4. フックがポールの○に引っかかったら、その場でその○は成功。次のステージへ進む。3つのステージを全部クリアしたらクリア。\n5. 判定はかなりシビア。ワイヤーが○に当たると跳ね返る。○がフックの「？」の中にちょうど収まったときだけ引っかかる。ポールは○以外ただの背景。\n6. Rキー：飛行中のハンガーが複数あるときは一番新しい1本だけ落とす（投数は増えない）。'
+    modeSelect: 'モード選択', modeNormal: 'ノーマル', modeEndless: 'エンドレス', modeVs: 'VS',
+    npcSelect: '相手を選んでね', npcWeak: '弱', npcMid: '中', npcStrong: '強', npcLabel: 'NPC',
+    back: '戻る', score: 'スコア', throwsLeft: 'あと', throwsLeftUnit: '投',
+    round: 'ラウンド', you: 'あなた',
+    vsWin: 'あなたの勝ち！', vsLose: 'NPCの勝ち…',
+    roundWinYou: 'あなたのラウンド！', roundWinNpc: 'NPCのラウンド…',
+    endlessOver: 'ゲームオーバー', changeNpc: '相手を変える', toModeSelect: 'モード選択へ',
+    retryEndless: 'もう一度', retryVs: 'もう一度対戦',
+    helpBody: '1. 中央パネルのハンガーをクリックして掴む（掴む場所で回転が変わる）。\n2. 右の角度ウィンドウをクリック／ドラッグして角度を決める（10°〜80°）。\n3. 下の「投げる」ボタンを長押し→離して投げる。Spaceキーでも同じ。\n4. フックがポールの○に引っかかったら、その場でその○は成功。次のステージへ進む。3つのステージを全部クリアしたらクリア。\n5. 判定はかなりシビア。ワイヤーが○に当たると跳ね返る。○がフックの「？」の中にちょうど収まったときだけ引っかかる。ポールは○以外ただの背景。\n6. Rキー：飛行中のハンガーが複数あるときは一番新しい1本だけ落とす（投数は増えない）。\n7. ノーマルを3ステージクリアするとモード選択が出る。エンドレス（○がどんどん遠くなる）とVS（NPCと先に引っかけた方が勝ち）で遊べる。'
   },
   en: {
     power: 'POWER', throws: 'THROWS', best: 'BEST', gripLabel: 'Where to hold the hanger',
@@ -148,7 +186,15 @@ var STR = {
     sndOn: 'SND ON', sndOff: 'SND OFF', pause: 'Pause', flip: 'Flip',
     stage: 'Stage', waiting: 'Getting ready...',
     keys: 'Space: throw (hold for power)  R: retry throw  P: pause  M: mute',
-    helpBody: '1. Click the hanger in the center panel to grab it (grip changes the spin).\n2. Click / drag the angle window to set the angle (10°-80°).\n3. Hold and release the THROW button (or Space) to throw.\n4. Hook a band on a pole and it counts at once. You move on to the next stage. Clear all 3 stages to win.\n5. The judgment is very strict. The wire bounces off the band. It only catches when the band center fits exactly inside the hook loop. The rest of the pole is just background.\n6. R: drop only the newest mid-flight hanger (no extra throw counted).'
+    modeSelect: 'Choose a mode', modeNormal: 'NORMAL', modeEndless: 'ENDLESS', modeVs: 'VS',
+    npcSelect: 'Choose your opponent', npcWeak: 'WEAK', npcMid: 'MED', npcStrong: 'STRONG', npcLabel: 'NPC',
+    back: 'Back', score: 'SCORE', throwsLeft: 'Left: ', throwsLeftUnit: ' throws',
+    round: 'Round', you: 'YOU',
+    vsWin: 'YOU WIN!', vsLose: 'NPC WINS...',
+    roundWinYou: 'Your round!', roundWinNpc: 'NPC round...',
+    endlessOver: 'GAME OVER', changeNpc: 'Change NPC', toModeSelect: 'Mode select',
+    retryEndless: 'Retry', retryVs: 'Rematch',
+    helpBody: '1. Click the hanger in the center panel to grab it (grip changes the spin).\n2. Click / drag the angle window to set the angle (10°-80°).\n3. Hold and release the THROW button (or Space) to throw.\n4. Hook a band on a pole and it counts at once. You move on to the next stage. Clear all 3 stages to win.\n5. The judgment is very strict. The wire bounces off the band. It only catches when the band center fits exactly inside the hook loop. The rest of the pole is just background.\n6. R: drop only the newest mid-flight hanger (no extra throw counted).\n7. Clear the 3 Normal stages to open the mode select. Endless (each hook moves the band further) and VS (first to hook beats the NPC) are there.'
   }
 };
 function t(k) {
@@ -296,8 +342,8 @@ function nearestWirePoint(local) {
 /* ---------- v16 (021/022) helpers ---------- */
 /* v16 (021): a uniform random point along the whole wire (length-weighted).
    Used for the default grip at game start; flight itself has no randomness. */
-function randomGripPoint() {
-  var wires = hangerWirePoints(game.flip); /* v20 (027): pick on the mirrored wire when flipped */
+function randomGripPointFlip(flip) {
+  var wires = hangerWirePoints(flip); /* v20 (027): pick on the mirrored wire when flipped */
   var segs = [], total = 0;
   for (var w = 0; w < wires.length; w++) {
     var pts = wires[w];
@@ -317,6 +363,9 @@ function randomGripPoint() {
   }
   var lastSeg = segs[segs.length - 1];
   return { x: lastSeg.b.x, y: lastSeg.b.y };
+}
+function randomGripPoint() {
+  return randomGripPointFlip(game.flip);
 }
 function setRandomGrip() {
   game.grip = randomGripPoint();
@@ -471,24 +520,34 @@ var SAMPLE_LOCAL = [
   hs({ x: -42.5, y: 52 }), hs({ x: 42.5, y: 52 }),
   hs({ x: -20, y: -62 }), hs({ x: 20, y: -62 }) /* v25 (034): literals x HANGER_SCALE */
 ];
-function newFlight(grip, angleDeg, power) {
+/* v35 (044): a flight from an arbitrary hand. dir=+1 throws right (player),
+   dir=-1 throws left (NPC). side is 'you' | 'npc'. */
+function makeFlight(G, grip, angleDeg, power, flip, dir, side) {
   var d = Math.hypot(grip.x, grip.y);
   var dNorm = Math.min(1, d / GRIP_NORM);
   var v = 500 + 2000 * power / 100; /* v11 (015): ~40% power reaches the pole (40% = 1300) */
   var a = angleDeg * D2R;
   var s = grip.x >= 0 ? 1 : -1; /* v11 (016): right-side grip -> clockwise, left-side grip -> counter-clockwise */
   return {
-    G: { x: HAND.x, y: HAND.y },
-    v: { x: v * Math.cos(a), y: -v * Math.sin(a) },
+    G: { x: G.x, y: G.y },
+    v: { x: dir * v * Math.cos(a), y: -v * Math.sin(a) },
     rot: 0,
     omega: (SPIN_BASE + SPIN_PER_GRIP * dNorm) * (0.7 + 0.6 * power / 100) * s,
     grip: { x: grip.x, y: grip.y }, dNorm: dNorm, power: power, angle: angleDeg,
-    flip: game.flip, /* v20 (027): the hanger orientation of this game; the grip is in the (possibly mirrored) frame */
+    flip: flip, /* v20 (027): the hanger orientation of this game; the grip is in the (possibly mirrored) frame */
+    side: side || 'you',
     status: 'flying', time: 0, restT: 0, bounces: 0, lastClankT: -1,
     minDistCatch: Infinity, minDistRod: Infinity, timeToRod: null, catchSpeed: 0,
     catchLocal: null, catchPart: null, caughtRing: null,
-    slipRing: null, slipUntil: 0 /* v26 (035): the ○ this flight just slipped off + until when it may not re-catch it */
+    slipRing: null, slipUntil: 0, /* v26 (035): the ○ this flight just slipped off + until when it may not re-catch it */
+    hhUntil: 0 /* v35 (044): until when this flight may not collide with another hanger again */
   };
+}
+function newFlight(grip, angleDeg, power) {
+  return makeFlight(HAND, grip, angleDeg, power, game.flip, 1, 'you');
+}
+function newNpcFlight(grip, angleDeg, power) {
+  return makeFlight(NPC_HAND, grip, angleDeg, power, !game.flip, -1, 'npc');
 }
 /* COM world position: COM is the local origin; G is the pivot */
 function comPos(st) {
@@ -696,6 +755,75 @@ function stepFlight(st, dt) {
   }
   return { events: events };
 }
+/* distance between two segments; returns {d, pa, pb} (closest points). */
+function segSegDist(a0, a1, b0, b1) {
+  var best = { d: Infinity, pa: null, pb: null };
+  var r;
+  r = distPtSeg(a0, b0, b1); if (r.d < best.d) best = { d: r.d, pa: { x: a0.x, y: a0.y }, pb: { x: r.x, y: r.y } };
+  r = distPtSeg(a1, b0, b1); if (r.d < best.d) best = { d: r.d, pa: { x: a1.x, y: a1.y }, pb: { x: r.x, y: r.y } };
+  r = distPtSeg(b0, a0, a1); if (r.d < best.d) best = { d: r.d, pa: { x: r.x, y: r.y }, pb: { x: b0.x, y: b0.y } };
+  r = distPtSeg(b1, a0, a1); if (r.d < best.d) best = { d: r.d, pa: { x: r.x, y: r.y }, pb: { x: b1.x, y: b1.y } };
+  var ix = segIntersect(a0, a1, b0, b1);
+  if (ix) best = { d: 0, pa: ix, pb: ix };
+  return best;
+}
+function segIntersect(a0, a1, b0, b1) {
+  var d1x = a1.x - a0.x, d1y = a1.y - a0.y;
+  var d2x = b1.x - b0.x, d2y = b1.y - b0.y;
+  var den = d1x * d2y - d1y * d2x;
+  if (Math.abs(den) < 1e-9) return null;
+  var t = ((b0.x - a0.x) * d2y - (b0.y - a0.y) * d2x) / den;
+  var u = ((b0.x - a0.x) * d1y - (b0.y - a0.y) * d1x) / den;
+  if (t < 0 || t > 1 || u < 0 || u > 1) return null;
+  return { x: a0.x + t * d1x, y: a0.y + t * d1y };
+}
+/* v35 (044): hanger-vs-hanger collision. Reuses the ○-contact idea: each
+   hanger is a set of wire segments; if any segment pair comes within
+   HH_CONTACT, push the two hangers apart along the contact normal and add
+   spin to both (like the ○ bounce, with the same x0.33 rotation kick).
+   A bounding-circle reject keeps it cheap when the hangers are far apart.
+   Returns true on a collision. */
+function hangerPairCollide(a, b) {
+  if (a.status !== 'flying' || b.status !== 'flying') return false;
+  if (a.time < (a.hhUntil || 0) || b.time < (b.hhUntil || 0)) return false;
+  var ca = comPos(a), cb = comPos(b);
+  if (Math.hypot(ca.x - cb.x, ca.y - cb.y) > 240) return false;
+  var wa = hangerWirePoints(); /* canonical; localToWorld mirrors by st.flip */
+  var wb = hangerWirePoints();
+  var bestD = Infinity, bestPa = null, bestPb = null;
+  for (var i = 0; i < wa.length; i++) {
+    for (var j = 0; j < wa[i].length - 1; j++) {
+      var a0 = localToWorld(a, wa[i][j]), a1 = localToWorld(a, wa[i][j + 1]);
+      for (var k = 0; k < wb.length; k++) {
+        for (var l = 0; l < wb[k].length - 1; l++) {
+          var b0 = localToWorld(b, wb[k][l]), b1 = localToWorld(b, wb[k][l + 1]);
+          var r = segSegDist(a0, a1, b0, b1);
+          if (r.d < bestD) { bestD = r.d; bestPa = r.pa; bestPb = r.pb; }
+        }
+      }
+    }
+  }
+  if (!bestPa || bestD >= HH_CONTACT) return false;
+  var n = norm2(sub2(bestPa, bestPb)); /* from B to A */
+  var ra = sub2(bestPa, a.G), rb = sub2(bestPb, b.G);
+  var waRad = a.omega * D2R, wbRad = b.omega * D2R;
+  var va = { x: a.v.x + waRad * (-ra.y), y: a.v.y + waRad * (ra.x) };
+  var vb = { x: b.v.x + wbRad * (-rb.y), y: b.v.y + wbRad * (rb.x) };
+  var vn = dot2(sub2(va, vb), n);
+  if (vn >= 0) return false; /* separating */
+  var e = 0.3;
+  var J = mul2(n, -(1 + e) * vn / 2);
+  a.v.x += J.x; a.v.y += J.y;
+  b.v.x -= J.x; b.v.y -= J.y;
+  a.omega += (ra.x * J.y - ra.y * J.x) / HANGER_INERTIA * R2D * 0.33;
+  b.omega -= (rb.x * J.y - rb.y * J.x) / HANGER_INERTIA * R2D * 0.33;
+  var push = (HH_CONTACT - bestD) / 2 + 0.5;
+  a.G.x += n.x * push; a.G.y += n.y * push;
+  b.G.x -= n.x * push; b.G.y -= n.y * push;
+  a.hhUntil = a.time + HH_COOLDOWN; b.hhUntil = b.time + HH_COOLDOWN;
+  a.bounces = (a.bounces || 0) + 1; b.bounces = (b.bounces || 0) + 1;
+  return true;
+}
 /* resting pose for a failed hanger: lying flat on the floor (rot 90/270) */
 function restingTransform(fl) {
   var rot = ((fl.rot % 360) + 360) % 360;
@@ -775,6 +903,51 @@ function simulateThrow(grip, angleDeg, power, maxTime, dtStep) {
   return { caught: false, endReason: 'timeout', timeToRod: st.timeToRod, minDistCatch: st.minDistCatch, minDistRod: st.minDistRod, bounces: st.bounces || 0 };
 }
 
+/* v35 (044): headless simulation of one NPC throw (leftward from NPC_HAND,
+   mirrored hanger). Same slip handling as simulateThrow. */
+function simulateNpcThrow(grip, angleDeg, power, maxTime) {
+  var st = newNpcFlight(grip, angleDeg, power);
+  var dt = 1 / 240;
+  var steps = Math.ceil((maxTime || 3) / dt);
+  for (var i = 0; i < steps; i++) {
+    stepFlight(st, dt);
+    if (st.status === 'caught') {
+      if (st.catchSpeed > SLIP_THRESHOLD) {
+        var cv = comVel(st);
+        st.G = catchPivotPos(st);
+        st.v = { x: cv.x * 0.3, y: Math.max(cv.y, 80) };
+        st.status = 'flying'; st.restT = 0;
+        st.slipRing = st.caughtRing; st.slipUntil = st.time + 0.5;
+        st.caughtRing = null; st.catchLocal = null; st.catchSpeed = 0;
+        continue;
+      }
+      return { caught: true, catchTime: st.time, catchSpeed: st.catchSpeed, minDistCatch: st.minDistCatch, bounces: st.bounces || 0 };
+    }
+    if (st.status === 'despawned' || st.status === 'stopped') {
+      return { caught: false, endReason: st.status, minDistCatch: st.minDistCatch, bounces: st.bounces || 0 };
+    }
+  }
+  return { caught: false, endReason: 'timeout', minDistCatch: st.minDistCatch, bounces: st.bounces || 0 };
+}
+/* v35 (044): find a (grip, angle, power) that hooks the current VS ○ from
+   the NPC hand, by grid search over simulateNpcThrow. Returns the first
+   catching combination, or the combination with the smallest minDistCatch
+   if none catches. Runs once per round (a small hitch at round start is
+   acceptable — the round result is showing). */
+function findNpcSolution() {
+  var grips = [{ x: 0, y: 0 }, { x: 0, y: -25 }, { x: 0, y: 20 }];
+  var best = null, bestD = Infinity;
+  for (var gi = 0; gi < grips.length; gi++) {
+    for (var a = 30; a <= 70; a += 5) {
+      for (var p = 30; p <= 90; p += 10) {
+        var r = simulateNpcThrow(grips[gi], a, p, 3);
+        if (r.caught) return { grip: grips[gi], angle: a, power: p };
+        if (r.minDistCatch < bestD) { bestD = r.minDistCatch; best = { grip: grips[gi], angle: a, power: p }; }
+      }
+    }
+  }
+  return best || { grip: grips[0], angle: 45, power: 50 };
+}
 /* ---------- game state ---------- */
 function loadBest() {
   try {
@@ -785,6 +958,23 @@ function loadBest() {
 }
 function saveBest(v) {
   try { if (typeof localStorage !== 'undefined') localStorage.setItem('hanger-toss-best', String(v)); } catch (e) {}
+}
+/* v35 (044): Endless best score, separate key from the Normal best (throws). */
+function loadEndlessBest() {
+  try {
+    if (typeof localStorage === 'undefined') return null;
+    var v = localStorage.getItem('hanger-toss-best-endless');
+    return v === null ? null : parseInt(v, 10);
+  } catch (e) { return null; }
+}
+function saveEndlessBest(v) {
+  try { if (typeof localStorage !== 'undefined') localStorage.setItem('hanger-toss-best-endless', String(v)); } catch (e) {}
+}
+/* v35 (044): NPC level display name. */
+function npcName(level) {
+  if (level === 'weak') return t('npcWeak');
+  if (level === 'strong') return t('npcStrong');
+  return t('npcMid');
 }
 
 function loadTheme() {
@@ -807,6 +997,12 @@ var game = {
   flip: false, /* v20 (027): true = right-facing (mirrored) hanger this game */
   stage: 0, /* v26 (035): index of the current stage's ○ in CATCH_POINTS */
   throws: 0, best: loadBest(),
+  mode: 'normal', /* v35 (044): normal | endless | vs */
+  clearScreen: null, /* v35 (044): which modal shows when state==='clear': 'mode' | 'npc' | 'endlessOver' | 'vsResult' */
+  endScore: 0, endThrowsUsed: 0, endBest: loadEndlessBest(), endT: 0.5, /* v35 (044): Endless state */
+  vs: null, /* v35 (044): VS state object (see startVS) */
+  npcFlights: [], /* v35 (044): the NPC's in-flight hangers (VS mode) */
+  npcThrowPoseT: 0, /* v35 (044): NPC throwing-pose timer (like throwPoseT) */
   chargeT: 0, flights: [],
   waitT: 0, gutsT: 0, standT: 0, swing: 0, throwPoseT: 0,
   failed: [], particles: [], hitStop: 0,
@@ -861,6 +1057,9 @@ function updateParticles(dt) {
 /* ---------- flow ---------- */
 function startGame() {
   game.state = 'playing'; game.phase = 'ready';
+  game.mode = 'normal'; game.clearScreen = null; /* v35 (044) */
+  game.vs = null; game.npcFlights = [];
+  game.standT = 0; game.gutsT = 0; /* v35 (044): reset (retry from the mode select) */
   game.throws = 0; game.failed = []; game.flights = [];
   game.angle = 45; game.power = 0; game.lastPower = 0;
   game.flip = Math.random() < 0.5; /* v20 (027): left- or right-facing hanger, 50/50 */
@@ -869,24 +1068,21 @@ function startGame() {
   playClick();
 }
 function retryGame() {
-  game.state = 'playing'; game.phase = 'ready';
-  game.throws = 0; game.failed = []; game.flights = [];
-  game.standT = 0; game.gutsT = 0;
-  game.flip = Math.random() < 0.5; /* v20 (027) */
-  setRandomGrip(); /* v16 (021) */
-  randomCatchPoint(); /* v25 (034): triangle placement; v26 (035): stage resets to 0 there */
-  playClick();
+  startGame(); /* v35 (044): retry = start Normal again */
 }
 function startCharge() {
   if (!game.grip) return;
+  if (game.mode === 'endless' && game.endThrowsUsed >= ENDLESS_THROWS_PER_RING) return; /* v35 (044): out of throws on this ○ */
   game.phase = 'charging'; game.chargeT = 0; game.power = 0;
 }
 function doThrow() {
   if (game.phase !== 'charging') return;
+  if (game.mode === 'endless' && game.endThrowsUsed >= ENDLESS_THROWS_PER_RING) { game.phase = 'ready'; game.power = 0; return; } /* v35 (044): out of throws on this ○ */
   var power = game.power;
   game.flights.push(newFlight(game.grip, game.angle, power));
   game.lastPower = power;
   game.throws += 1;
+  if (game.mode === 'endless') game.endThrowsUsed += 1; /* v35 (044) */
   game.phase = 'ready'; /* v09: throw again immediately, no input lock */
   game.swing = 1;
   game.throwPoseT = THROW_POSE_TIME; /* v14 (020): show the throwing pose for 0.2s */
@@ -894,7 +1090,9 @@ function doThrow() {
 }
 function removeFlight(fl) {
   var idx = game.flights.indexOf(fl);
-  if (idx >= 0) game.flights.splice(idx, 1);
+  if (idx >= 0) { game.flights.splice(idx, 1); return; }
+  idx = game.npcFlights.indexOf(fl); /* v35 (044) */
+  if (idx >= 0) game.npcFlights.splice(idx, 1);
 }
 function abortFlight() {
   /* v09: drop only the newest flying hanger */
@@ -933,15 +1131,33 @@ function resolveCatch(fl) {
     fl.caughtRing = null; fl.catchLocal = null; fl.catchSpeed = 0;
     return false;
   }
-  /* confirmed hook: mark done at once, advance the stage at once */
+  /* confirmed hook: mark done at once */
   var ring = fl.caughtRing || currentRing();
   if (ring) {
     ring.done = true;
     spawnSparks(ring.x, ring.y);
   }
-  game.flights = []; /* first catch wins: discard the other in-flight hangers (as in v25) */
+  game.flights = []; game.npcFlights = []; /* first catch wins: discard the other in-flight hangers (as in v25) */
   game.hitStop = 0.1;
   playCatch();
+  /* v35 (044): Endless — score, next ○ further along, reset the throw count. */
+  if (game.mode === 'endless') {
+    game.endScore++;
+    game.endThrowsUsed = 0;
+    nextEndlessRing();
+    game.phase = 'ready';
+    return true;
+  }
+  /* v35 (044): VS — the catching side wins the round. */
+  if (game.mode === 'vs' && game.vs) {
+    if (fl.side === 'npc') game.vs.npcWins++; else game.vs.you++;
+    game.vs.roundWinner = fl.side || 'you';
+    game.vs.roundOver = true; game.vs.roundT = 0;
+    game.phase = 'roundEnd';
+    playClear();
+    return true;
+  }
+  /* Normal: advance the stage at once */
   game.stage++;
   if (game.stage >= CATCH_POINTS.length) {
     game.phase = 'guts'; game.gutsT = 0; game.standT = 0;
@@ -951,8 +1167,93 @@ function resolveCatch(fl) {
   }
   return true;
 }
+/* ---------- v35 (044): Endless + VS mode starts ---------- */
+function setEndlessRing(t) {
+  game.endT = clamp(t, 0, ENDLESS_T_MAX);
+  setCatchPoints([game.endT]); /* single ○ on the Normal rod; stage resets to 0 */
+}
+function nextEndlessRing() {
+  setEndlessRing(game.endT + ENDLESS_T_STEP);
+}
+function startEndless() {
+  game.mode = 'endless'; game.clearScreen = null;
+  game.vs = null; game.npcFlights = [];
+  game.state = 'playing'; game.phase = 'ready';
+  game.standT = 0; game.gutsT = 0;
+  game.throws = 0; game.failed = []; game.flights = [];
+  game.angle = 45; game.power = 0; game.lastPower = 0;
+  game.flip = Math.random() < 0.5;
+  setRandomGrip();
+  game.endScore = 0; game.endThrowsUsed = 0;
+  setEndlessRing(0.4 + Math.random() * 0.45); /* initial t in [0.4,0.85], like P1 */
+  playClick();
+}
+function endlessGameOver() {
+  game.state = 'clear'; game.clearScreen = 'endlessOver';
+  game.phase = 'ready';
+  if (game.endBest === null || game.endScore > game.endBest) { game.endBest = game.endScore; saveEndlessBest(game.endBest); }
+  playFail();
+}
+function randomVsRing() {
+  var t = 0.4 + Math.random() * 0.45;
+  CATCH_POINTS.length = 0;
+  CATCH_POINTS.push({
+    x: VS_ROD_A.x + (VS_ROD_B.x - VS_ROD_A.x) * t,
+    y: VS_ROD_A.y + (VS_ROD_B.y - VS_ROD_A.y) * t,
+    t: t, done: false
+  });
+  game.stage = 0;
+}
+function startVS(level) {
+  game.mode = 'vs'; game.clearScreen = null;
+  game.state = 'playing'; game.phase = 'ready';
+  game.standT = 0; game.gutsT = 0;
+  game.throws = 0; game.failed = []; game.flights = []; game.npcFlights = [];
+  game.angle = 45; game.power = 0; game.lastPower = 0;
+  game.flip = Math.random() < 0.5;
+  setRandomGrip();
+  game.vs = { npc: level, you: 0, npcWins: 0, round: 1, roundOver: false, roundWinner: null, roundT: 0, npcTimer: 1.5, solution: null };
+  randomVsRing();
+  game.vs.solution = findNpcSolution();
+  playClick();
+}
+function nextVsRound() {
+  game.vs.round++;
+  game.vs.roundOver = false; game.vs.roundWinner = null; game.vs.roundT = 0;
+  game.vs.npcTimer = 1.5;
+  game.flights = []; game.npcFlights = [];
+  randomVsRing();
+  game.vs.solution = findNpcSolution();
+  game.phase = 'ready';
+}
+function npcThrow() {
+  if (!game.vs || game.vs.roundOver) return;
+  var lv = NPC_LEVELS[game.vs.npc] || NPC_LEVELS.mid;
+  var good = Math.random() < lv.p;
+  var grip, angle, power;
+  if (good && game.vs.solution) {
+    var s = game.vs.solution;
+    angle = clamp(s.angle + (Math.random() * 2 - 1) * NPC_GOOD_ANG_ERR, 10, 80);
+    power = clamp(s.power + (Math.random() * 2 - 1) * NPC_GOOD_POW_ERR, 10, 100);
+    grip = { x: s.grip.x, y: s.grip.y };
+  } else {
+    grip = randomGripPointFlip(!game.flip);
+    angle = 10 + Math.random() * 70;
+    power = 20 + Math.random() * 80;
+  }
+  game.npcFlights.push(newNpcFlight(grip, angle, power));
+  game.npcThrowPoseT = THROW_POSE_TIME;
+  playThrow();
+}
+function clearPrimaryAction() {
+  if (game.clearScreen === 'mode') startGame();
+  else if (game.clearScreen === 'endlessOver') startEndless();
+  else if (game.clearScreen === 'vsResult' && game.vs) startVS(game.vs.npc);
+  /* 'npc': no default — the player must pick a difficulty */
+}
 function endThrowFail(fl) {
   var rest = restingTransform(fl);
+  rest.side = fl.side || 'you'; /* v35 (044): NPC failures draw orange */
   rest.rot0 = ((fl.rot % 360) + 360) % 360; /* rotation at the stop */
   rest.y0 = fl.G.y; /* G.y at the stop (the hanger rests on the floor there) */
   rest.settleT = 0; /* v13 (019): tips over flat over SETTLE_TIME */
@@ -1003,41 +1304,81 @@ function update(dt) {
   if (game.state !== 'playing') return;
   if (game.swing > 0) game.swing = Math.max(0, game.swing - dt * 3);
   if (game.throwPoseT > 0) game.throwPoseT = Math.max(0, game.throwPoseT - dt); /* v14 (020) */
+  if (game.npcThrowPoseT > 0) game.npcThrowPoseT = Math.max(0, game.npcThrowPoseT - dt); /* v35 (044) */
   if (game.phase === 'charging') {
     game.chargeT += dt;
     game.power = Math.min(100, game.chargeT / POWER_CHARGE_TIME * 100);
   }
+  /* v35 (044): VS — the NPC throws on its timer while the round is active. */
+  if (game.mode === 'vs' && game.vs && !game.vs.roundOver && (game.phase === 'ready' || game.phase === 'charging')) {
+    game.vs.npcTimer -= dt;
+    if (game.vs.npcTimer <= 0) {
+      npcThrow();
+      var lv = NPC_LEVELS[game.vs.npc] || NPC_LEVELS.mid;
+      game.vs.npcTimer = lv.tMin + Math.random() * (lv.tMax - lv.tMin);
+    }
+  }
+  /* v35 (044): VS — round-end pause, then the next round or the match result. */
+  if (game.phase === 'roundEnd' && game.mode === 'vs' && game.vs) {
+    game.vs.roundT += dt;
+    if (game.vs.roundT >= VS_ROUND_PAUSE) {
+      if (game.vs.you >= VS_ROUNDS_TO_WIN || game.vs.npcWins >= VS_ROUNDS_TO_WIN) {
+        game.state = 'clear'; game.clearScreen = 'vsResult'; game.phase = 'ready';
+        game.standT = (game.vs.you > game.vs.npcWins) ? 1 : 0; /* guts pose on a win */
+        if (game.vs.you > game.vs.npcWins) { spawnConfetti(); playClear(); }
+      } else {
+        nextVsRound();
+      }
+    }
+    return; /* no flights to step during the pause */
+  }
   /* v09: step every flying hanger; the player can already throw again.
+     v35 (044): player + NPC flights are stepped interleaved per substep, so
+     the hanger-vs-hanger collision sees both at the same instant.
      v26 (035): a catch is resolved at once by resolveCatch (hook or slip);
      a hook never blocks input, so there is no 'hanging' phase. */
-  if ((game.phase === 'ready' || game.phase === 'charging') && game.flights.length > 0) {
+  if ((game.phase === 'ready' || game.phase === 'charging') && (game.flights.length > 0 || game.npcFlights.length > 0)) {
     var sub = Math.max(1, Math.ceil(dt / (1 / 480)));
     var sdt = dt / sub;
-    var snapshot = game.flights.slice();
-    for (var fi = 0; fi < snapshot.length; fi++) {
-      var fl = snapshot[fi];
-      if (game.flights.indexOf(fl) < 0) continue; /* discarded by an earlier hook this update */
-      var done = false;
-      for (var i = 0; i < sub && !done; i++) {
-        var r = stepFlight(fl, sdt);
-        for (var j = 0; j < r.events.length; j++) {
-          var e = r.events[j];
-          if (e.t === 'floor') { playBounce(); spawnDust(e.x, e.y); }
-          if (e.t === 'bounce') { maybeClank(fl); } /* v13: at most once per 60ms per flight */
+    var done = false;
+    for (var s = 0; s < sub && !done; s++) {
+      var lists = [game.flights, game.npcFlights];
+      for (var li = 0; li < lists.length && !done; li++) {
+        var snapshot = lists[li].slice();
+        for (var fi = 0; fi < snapshot.length; fi++) {
+          var fl = snapshot[fi];
+          if (lists[li].indexOf(fl) < 0) continue; /* discarded by an earlier hook this update */
+          var r = stepFlight(fl, sdt);
+          for (var j = 0; j < r.events.length; j++) {
+            var e = r.events[j];
+            if (e.t === 'floor') { playBounce(); spawnDust(e.x, e.y); }
+            if (e.t === 'bounce') { maybeClank(fl); } /* v13: at most once per 60ms per flight */
+          }
+          if (fl.status === 'caught') { resolveCatch(fl); if (game.phase === 'guts' || game.phase === 'roundEnd') done = true; }
+          else if (fl.status === 'stopped') { removeFlight(fl); endThrowFail(fl); }
+          else if (fl.status === 'despawned') { removeFlight(fl); }
         }
-        if (fl.status === 'caught') { done = true; resolveCatch(fl); }
-        else if (fl.status === 'stopped') { removeFlight(fl); endThrowFail(fl); done = true; }
-        else if (fl.status === 'despawned') { removeFlight(fl); done = true; }
       }
-      if (game.phase === 'guts') break; /* hooked the last ○: stop stepping */
+      /* v35 (044): hanger-vs-hanger collision, once per substep. */
+      if (!done && game.mode === 'vs') {
+        for (var pi = 0; pi < game.flights.length; pi++) {
+          for (var pj = 0; pj < game.npcFlights.length; pj++) {
+            if (hangerPairCollide(game.flights[pi], game.npcFlights[pj])) maybeClank(game.flights[pi]);
+          }
+        }
+      }
     }
+  }
+  /* v35 (044): Endless — out of throws on this ○ and nothing left flying: game over. */
+  if (game.mode === 'endless' && game.state === 'playing' && game.endThrowsUsed >= ENDLESS_THROWS_PER_RING && game.flights.length === 0) {
+    endlessGameOver();
   }
   /* v26 (035): no 'hanging' phase any more — a hook resolves at once in resolveCatch. */
   if (game.phase === 'guts') {
     game.gutsT += dt;
     game.standT = Math.min(1, game.gutsT / 0.5);
     if (game.gutsT >= 2.0) {
-      game.state = 'clear';
+      game.state = 'clear'; game.clearScreen = 'mode'; /* v35 (044): Normal clear -> mode select */
       if (game.best === null || game.throws < game.best) { game.best = game.throws; saveBest(game.best); }
     }
   }
@@ -1094,6 +1435,13 @@ function drawTitleStrip(ctx) {
     ctx.fillStyle = '#ffffff';
     ctx.fillText(b.label, b.r.x + b.r.w / 2, b.r.y + b.r.h / 2 + 0.5);
   }
+  /* v35 (044): VS round score, top centre (the strip centre is otherwise empty). */
+  if (game.mode === 'vs' && game.vs) {
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 15px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(t('you') + ' ' + game.vs.you + ' - ' + game.vs.npcWins + ' NPC', CV_W / 2, 16);
+    ctx.textAlign = 'left';
+  }
 }
 
 function drawHUD(ctx) {
@@ -1112,21 +1460,35 @@ function drawHUD(ctx) {
   var pw = dispPower();
   ctx.fillStyle = pw < 34 ? '#4caf50' : (pw < 67 ? '#ffcf3f' : '#ff5252');
   if (pw > 0) ctx.fillRect(40, 56, 240 * pw / 100, 16);
+  /* v35 (044): the left panel adapts to the mode. */
+  var hudLabel, hudVal, hudSub, hudBest;
+  if (game.mode === 'endless') {
+    hudLabel = t('score'); hudVal = game.endScore;
+    hudSub = t('throwsLeft') + (ENDLESS_THROWS_PER_RING - game.endThrowsUsed) + t('throwsLeftUnit');
+    hudBest = t('best') + ' ' + (game.endBest === null ? '—' : game.endBest);
+  } else if (game.mode === 'vs' && game.vs) {
+    hudLabel = t('throws'); hudVal = game.throws;
+    hudSub = t('round') + ' ' + game.vs.round + '/' + (2 * VS_ROUNDS_TO_WIN - 1);
+    hudBest = t('npcLabel') + ' ' + npcName(game.vs.npc);
+  } else {
+    hudLabel = t('throws'); hudVal = game.throws;
+    var stageN = Math.min(game.stage + 1, CATCH_POINTS.length); /* v26 (035): current stage under the throws count (stage = done count + 1, clamped at the last stage) */
+    hudSub = t('stage') + ' ' + stageN + '/' + CATCH_POINTS.length;
+    hudBest = t('best') + ' ' + (game.best === null ? '—' : game.best);
+  }
   ctx.fillStyle = theme().label;
   ctx.font = '12px sans-serif';
-  ctx.fillText(t('throws'), 40, 92);
+  ctx.fillText(hudLabel, 40, 92);
   drawHanger(ctx, 56, 108, 0, 0.15, { x: 0, y: 0 }, undefined, { color: '#f2f2f2', width: 6 * HANGER_SCALE }, game.flip); /* v16 (021): white panel hanger; v20 (027): mirrored when flipped */
   ctx.fillStyle = '#ffffff';
   ctx.font = 'bold 24px sans-serif';
-  ctx.fillText('× ' + game.throws, 76, 110);
-  /* v26 (035): current stage under the throws count (stage = done count + 1, clamped at the last stage) */
-  var stageN = Math.min(game.stage + 1, CATCH_POINTS.length);
+  ctx.fillText('× ' + hudVal, 76, 110);
   ctx.fillStyle = theme().label;
   ctx.font = '12px sans-serif';
-  ctx.fillText(t('stage') + ' ' + stageN + '/' + CATCH_POINTS.length, 40, 131);
+  ctx.fillText(hudSub, 40, 131);
   ctx.fillStyle = theme().label;
   ctx.font = '13px sans-serif'; ctx.textAlign = 'right';
-  ctx.fillText(t('best') + ' ' + (game.best === null ? '—' : game.best), 280, 110);
+  ctx.fillText(hudBest, 280, 110);
   ctx.textAlign = 'left';
 
   /* v31 (040): theme chips below the power window (4 x 22x22, y 150-172). v32 (041): bright chip colors. */
@@ -1266,6 +1628,21 @@ function drawThrowerImage(ctx) {
   }
 }
 
+/* v35 (044): the VS opponent — a horizontally-flipped copy of the player's
+   thrower drawing, on the right side (mirror around screen x=480, so the
+   fingertip lands at (762,303), mirroring the player's (198,303)). */
+function drawNpcThrowerImage(ctx) {
+  if (!THROWER_IMG || !THROWER_IMG.complete || !THROWER_IMG.naturalWidth) return;
+  ctx.save();
+  ctx.translate(CV_W, 0); ctx.scale(-1, 1);
+  if (game.npcThrowPoseT > 0) {
+    ctx.drawImage(THROWER_IMG, 370, 0, 371, 479, THROWER_DX_R, THROWER_DY, 371 * THROWER_S, 479 * THROWER_S);
+  } else {
+    ctx.drawImage(THROWER_IMG, 0, 0, 370, 479, THROWER_DX, THROWER_DY, 370 * THROWER_S, 479 * THROWER_S);
+  }
+  ctx.restore();
+}
+
 /* v21 (028): the user's guts-pose image, instead of the code-drawn figure.
    During the 0.5s stand-up (standT 0->1) it slides up 40 screen px from a
    lower start into the standing position; in 'clear' it sits at the top. */
@@ -1338,7 +1715,7 @@ function drawPlayfield(ctx) {
     var f = game.failed[i];
     var sp = settlePose(f);
     ctx.save(); ctx.globalAlpha = 0.85;
-    drawHanger(ctx, w2sx(f.x), w2sy(sp.y), sp.rot, VIEW_SCALE, f.grip, sp.scaleY, undefined, f.flip);
+    drawHanger(ctx, w2sx(f.x), w2sy(sp.y), sp.rot, VIEW_SCALE, f.grip, sp.scaleY, f.side === 'npc' ? { color: NPC_COLOR } : undefined, f.flip); /* v35 (044): NPC failures draw orange */
     ctx.restore();
   }
   /* v23 (032): one pole per ○ (3 poles). The pole image is drawn at its
@@ -1386,13 +1763,20 @@ function drawPlayfield(ctx) {
   }
   /* thrower (v14 (020) + v21 (028)): user-drawn image while seated;
      the user's guts-pose image for the stand-up + guts pose. */
-  if (game.phase === 'guts' || game.state === 'clear' || game.standT > 0) drawGutsImage(ctx);
+  if (game.phase === 'guts' || game.standT > 0) drawGutsImage(ctx); /* v35 (044): Normal clear has standT=1; VS win sets standT=1, VS loss leaves 0 */
   else drawThrowerImage(ctx);
+  if (game.mode === 'vs') drawNpcThrowerImage(ctx); /* v35 (044): the opponent, flipped, on the right */
   /* flying hangers (v09: several may fly at once) */
   for (var fi2 = 0; fi2 < game.flights.length; fi2++) {
     var fl2 = game.flights[fi2];
     var gp2 = w2s(fl2.G);
     drawHanger(ctx, gp2.x, gp2.y, fl2.rot, VIEW_SCALE, fl2.grip, undefined, undefined, fl2.flip);
+  }
+  /* v35 (044): the NPC's hangers, orange. */
+  for (var fi3 = 0; fi3 < game.npcFlights.length; fi3++) {
+    var fl3 = game.npcFlights[fi3];
+    var gp3 = w2s(fl3.G);
+    drawHanger(ctx, gp3.x, gp3.y, fl3.rot, VIEW_SCALE, fl3.grip, undefined, { color: NPC_COLOR }, fl3.flip);
   }
   /* v26 (035): no hanging hanger any more — a hook removes the hanger at once (resolveCatch), so there is nothing to draw here. */
   /* particles */
@@ -1407,7 +1791,7 @@ function drawPlayfield(ctx) {
 }
 
 function drawThrowButton(ctx) {
-  var enabled = game.phase === 'ready' || game.phase === 'charging';
+  var enabled = (game.phase === 'ready' || game.phase === 'charging') && !(game.mode === 'endless' && game.endThrowsUsed >= ENDLESS_THROWS_PER_RING); /* v35 (044): greyed out when out of throws on this ○ */
   ctx.fillStyle = enabled ? '#e8862e' : '#7d8b90';
   rr(ctx, THROW_BTN.x, THROW_BTN.y, THROW_BTN.w, THROW_BTN.h, 10); ctx.fill();
   ctx.fillStyle = '#ffffff';
@@ -1426,6 +1810,14 @@ function drawOverlay(ctx, x, y, w, h) {
   ctx.strokeStyle = theme().overlayBorder; ctx.lineWidth = 2;
   rr(ctx, x, y, w, h, 12); ctx.stroke();
 }
+/* v35 (044): a modal button (orange, white bold label). */
+function drawModeBtn(ctx, r, label) {
+  ctx.fillStyle = '#e8862e';
+  rr(ctx, r.x, r.y, r.w, r.h, 10); ctx.fill();
+  ctx.fillStyle = '#ffffff';
+  ctx.font = 'bold 20px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText(label, r.x + r.w / 2, r.y + r.h / 2 + 1);
+}
 
 function draw() {
   if (!ctx) return;
@@ -1437,20 +1829,63 @@ function draw() {
   drawHUD(ctx);
   drawPlayfield(ctx);
   drawThrowButton(ctx);
-  if (game.state === 'clear') {
-    drawOverlay(ctx, 230, 130, 500, 280);
+  /* v35 (044): VS round-result banner (brief, during the round-end pause). */
+  if (game.mode === 'vs' && game.vs && game.vs.roundOver && game.state === 'playing') {
+    ctx.fillStyle = 'rgba(11,30,36,0.55)';
+    ctx.fillRect(0, 220, CV_W, 80);
     ctx.fillStyle = '#ffffff'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.font = 'bold 38px sans-serif';
-    ctx.fillText(t('clearTitle'), CV_W / 2, 200);
-    ctx.font = '24px sans-serif';
-    if (game.lang === 'ja') ctx.fillText(game.throws + t('clearThrows'), CV_W / 2, 250);
-    else ctx.fillText(game.throws + t('clearThrows'), CV_W / 2, 250);
-    ctx.font = '18px sans-serif'; ctx.fillStyle = theme().label;
-    ctx.fillText(t('best') + ' ' + (game.best === null ? '—' : game.best), CV_W / 2, 285);
-    ctx.fillStyle = '#e8862e';
-    rr(ctx, RETRY_BTN.x, RETRY_BTN.y, RETRY_BTN.w, RETRY_BTN.h, 10); ctx.fill();
-    ctx.fillStyle = '#ffffff'; ctx.font = 'bold 20px sans-serif';
-    ctx.fillText(t('retry'), CV_W / 2, RETRY_BTN.y + RETRY_BTN.h / 2 + 1);
+    ctx.font = 'bold 34px sans-serif';
+    ctx.fillText(game.vs.roundWinner === 'npc' ? t('roundWinNpc') : t('roundWinYou'), CV_W / 2, 250);
+    ctx.font = '20px sans-serif';
+    ctx.fillText(t('you') + ' ' + game.vs.you + ' - ' + game.vs.npcWins + ' NPC', CV_W / 2, 285);
+    ctx.textAlign = 'left';
+  }
+  if (game.state === 'clear') {
+    drawOverlay(ctx, 230, 100, 500, 340);
+    ctx.fillStyle = '#ffffff'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    if (game.clearScreen === 'npc') {
+      ctx.font = 'bold 32px sans-serif';
+      ctx.fillText(t('npcSelect'), CV_W / 2, 165);
+      ctx.font = '18px sans-serif'; ctx.fillStyle = theme().label;
+      ctx.fillText(t('modeVs') + ' — ' + t('npcLabel'), CV_W / 2, 215);
+      drawModeBtn(ctx, NPC_BTN_W, t('npcWeak'));
+      drawModeBtn(ctx, NPC_BTN_M, t('npcMid'));
+      drawModeBtn(ctx, NPC_BTN_S, t('npcStrong'));
+      drawModeBtn(ctx, BACK_BTN, t('back'));
+    } else if (game.clearScreen === 'endlessOver') {
+      ctx.font = 'bold 38px sans-serif';
+      ctx.fillText(t('endlessOver'), CV_W / 2, 165);
+      ctx.font = '24px sans-serif';
+      ctx.fillText(t('score') + ' ' + game.endScore, CV_W / 2, 215);
+      ctx.font = '18px sans-serif'; ctx.fillStyle = theme().label;
+      ctx.fillText(t('best') + ' ' + (game.endBest === null ? '—' : game.endBest), CV_W / 2, 250);
+      drawModeBtn(ctx, END_RETRY_BTN, t('retryEndless'));
+      drawModeBtn(ctx, END_MODE_BTN, t('toModeSelect'));
+    } else if (game.clearScreen === 'vsResult' && game.vs) {
+      var youWon = game.vs.you > game.vs.npcWins;
+      ctx.font = 'bold 38px sans-serif';
+      ctx.fillText(youWon ? t('vsWin') : t('vsLose'), CV_W / 2, 165);
+      ctx.font = '24px sans-serif';
+      ctx.fillText(t('you') + ' ' + game.vs.you + ' - ' + game.vs.npcWins + ' NPC', CV_W / 2, 215);
+      ctx.font = '18px sans-serif'; ctx.fillStyle = theme().label;
+      ctx.fillText(t('npcLabel') + ': ' + npcName(game.vs.npc), CV_W / 2, 250);
+      drawModeBtn(ctx, VS_RETRY_BTN, t('retryVs'));
+      drawModeBtn(ctx, VS_MODE_BTN, t('toModeSelect'));
+      drawModeBtn(ctx, VS_NPC_BTN, t('changeNpc'));
+    } else {
+      /* 'mode' (default): Normal clear result + mode select. */
+      ctx.font = 'bold 38px sans-serif';
+      ctx.fillText(t('clearTitle'), CV_W / 2, 165);
+      ctx.font = '24px sans-serif';
+      ctx.fillText(game.throws + t('clearThrows'), CV_W / 2, 215);
+      ctx.font = '18px sans-serif'; ctx.fillStyle = theme().label;
+      ctx.fillText(t('best') + ' ' + (game.best === null ? '—' : game.best), CV_W / 2, 250);
+      ctx.font = 'bold 20px sans-serif';
+      ctx.fillText(t('modeSelect'), CV_W / 2, 285);
+      drawModeBtn(ctx, MODE_BTN_N, t('modeNormal'));
+      drawModeBtn(ctx, MODE_BTN_E, t('modeEndless'));
+      drawModeBtn(ctx, MODE_BTN_V, t('modeVs'));
+    }
     ctx.textAlign = 'left';
   }
   if (game.showHelp) {
@@ -1523,7 +1958,24 @@ if (canvas && ctx) {
     }
     if (game.paused) { game.paused = false; return; }
     if (game.state === 'clear') {
-      if (hitRect(p, RETRY_BTN)) retryGame();
+      /* v35 (044): mode-select / NPC-select / result modals. */
+      if (game.clearScreen === 'mode') {
+        if (hitRect(p, MODE_BTN_N)) { startGame(); return; }
+        if (hitRect(p, MODE_BTN_E)) { startEndless(); return; }
+        if (hitRect(p, MODE_BTN_V)) { game.clearScreen = 'npc'; playClick(); return; }
+      } else if (game.clearScreen === 'npc') {
+        if (hitRect(p, NPC_BTN_W)) { startVS('weak'); return; }
+        if (hitRect(p, NPC_BTN_M)) { startVS('mid'); return; }
+        if (hitRect(p, NPC_BTN_S)) { startVS('strong'); return; }
+        if (hitRect(p, BACK_BTN)) { game.clearScreen = 'mode'; playClick(); return; }
+      } else if (game.clearScreen === 'endlessOver') {
+        if (hitRect(p, END_RETRY_BTN)) { startEndless(); return; }
+        if (hitRect(p, END_MODE_BTN)) { game.clearScreen = 'mode'; playClick(); return; }
+      } else if (game.clearScreen === 'vsResult') {
+        if (hitRect(p, VS_RETRY_BTN)) { startVS(game.vs.npc); return; }
+        if (hitRect(p, VS_MODE_BTN)) { game.clearScreen = 'mode'; playClick(); return; }
+        if (hitRect(p, VS_NPC_BTN)) { game.clearScreen = 'npc'; playClick(); return; }
+      }
       return;
     }
     /* v29 (038): flip button hit-test runs before the grip logic, so a click on
@@ -1567,7 +2019,7 @@ if (canvas && ctx) {
       if (actx && actx.state === 'suspended') actx.resume();
       if (game.showHelp) { game.showHelp = false; return; }
       if (game.paused) { game.paused = false; return; }
-      if (game.state === 'clear') retryGame();
+      if (game.state === 'clear') clearPrimaryAction(); /* v35 (044) */
       else if (game.state === 'playing' && game.phase === 'ready' && game.grip) startCharge();
     } else if (e.code === 'KeyR') {
       if (game.state === 'playing' && (game.phase === 'ready' || game.phase === 'charging') && game.flights.length > 0) abortFlight();
@@ -1587,7 +2039,7 @@ if (canvas && ctx) {
 /* ---------- debug / test hook (also used by the Node harness) ---------- */
 if (typeof globalThis !== 'undefined') {
   globalThis.HANGER_TOSS_DEBUG = {
-    version: 'v34',
+    version: 'v35',
     simulateThrow: simulateThrow,
     newFlight: newFlight,
     stepFlight: stepFlight,
@@ -1613,6 +2065,29 @@ if (typeof globalThis !== 'undefined') {
     setFlip: function (b) { return applyFlip(b); }, /* v20 (027); v28 (037): mirrors the grip with the wire */
     startGame: startGame,
     retryGame: retryGame,
+    newNpcFlight: newNpcFlight, /* v35 (044) */
+    makeFlight: makeFlight, /* v35 (044) */
+    startEndless: startEndless, /* v35 (044) */
+    startVS: startVS, /* v35 (044) */
+    nextVsRound: nextVsRound, /* v35 (044) */
+    npcThrow: npcThrow, /* v35 (044) */
+    findNpcSolution: findNpcSolution, /* v35 (044) */
+    simulateNpcThrow: simulateNpcThrow, /* v35 (044) */
+    hangerPairCollide: hangerPairCollide, /* v35 (044) */
+    endlessGameOver: endlessGameOver, /* v35 (044) */
+    setEndlessRing: setEndlessRing, /* v35 (044) */
+    randomVsRing: randomVsRing, /* v35 (044) */
+    npcName: npcName, /* v35 (044) */
+    NPC_LEVELS: NPC_LEVELS, /* v35 (044) */
+    NPC_GOOD_ANG_ERR: NPC_GOOD_ANG_ERR, NPC_GOOD_POW_ERR: NPC_GOOD_POW_ERR, /* v35 (044): tuned good-throw errors */
+    ENDLESS_THROWS_PER_RING: ENDLESS_THROWS_PER_RING, /* v35 (044) */
+    ENDLESS_T_STEP: ENDLESS_T_STEP, /* v35 (044) */
+    ENDLESS_T_MAX: ENDLESS_T_MAX, /* v35 (044) */
+    VS_ROUNDS_TO_WIN: VS_ROUNDS_TO_WIN, /* v35 (044) */
+    VS_ROUND_PAUSE: VS_ROUND_PAUSE, /* v35 (044) */
+    NPC_HAND: NPC_HAND, /* v35 (044) */
+    VS_ROD_A: VS_ROD_A, VS_ROD_B: VS_ROD_B, /* v35 (044) */
+    NPC_COLOR: NPC_COLOR, HH_CONTACT: HH_CONTACT, /* v35 (044) */
     drawThrowerImage: drawThrowerImage,
     THROWER_S: THROWER_S, THROWER_DX: THROWER_DX, THROWER_DY: THROWER_DY, THROWER_DX_R: THROWER_DX_R,
     SETTLE_TIME: SETTLE_TIME,
