@@ -130,8 +130,8 @@ var ROD_N_UP = { x: ROD_U.y, y: -ROD_U.x };
 /* ---------- i18n ---------- */
 var STR = {
   ja: {
-    power: 'パワー', throws: '投げた回数', best: 'ベスト', gripHint: '握る場所を選ぶ', gripDone: '選択済み',
-    angle: '角度', spin: '回転', slow: '遅い', normal: '普通', fast: '速い', cw: '右回り', ccw: '左回り',
+    power: 'パワー', throws: '投げた回数', best: 'ベスト', gripLabel: 'ハンガーのどこを持つか',
+    angle: '投げる角度', spin: '回転', slow: '遅い', normal: '普通', fast: '速い', cw: '右回り', ccw: '左回り',
     throwBtn: '投げる', flying: '飛行中...', needGrip: 'まずハンガーを掴んでね',
     title: 'ハンガー投げ', subtitle: '（仮）',
     howto1: '中央のハンガーをクリックして掴む。',
@@ -146,8 +146,8 @@ var STR = {
     helpBody: '1. 中央パネルのハンガーをクリックして掴む（掴む場所で回転が変わる）。\n2. 右の角度ウィンドウをクリック／ドラッグして角度を決める（10°〜80°）。\n3. 下の「投げる」ボタンを長押し→離して投げる。Spaceキーでも同じ。\n4. フックがポールの○に引っかかったら、その場でその○は成功。次のステージへ進む。3つのステージを全部クリアしたらクリア。\n5. 判定はかなりシビア。ワイヤーが○に当たると跳ね返る。○がフックの「？」の中にちょうど収まったときだけ引っかかる。ポールは○以外ただの背景。\n6. Rキー：飛行中のハンガーが複数あるときは一番新しい1本だけ落とす（投数は増えない）。'
   },
   en: {
-    power: 'POWER', throws: 'THROWS', best: 'BEST', gripHint: 'Pick a grip point', gripDone: 'Grip set',
-    angle: 'ANGLE', spin: 'Spin', slow: 'Slow', normal: 'Normal', fast: 'Fast', cw: 'CW', ccw: 'CCW',
+    power: 'POWER', throws: 'THROWS', best: 'BEST', gripLabel: 'Where to hold the hanger',
+    angle: 'THROW ANGLE', spin: 'Spin', slow: 'Slow', normal: 'Normal', fast: 'Fast', cw: 'CW', ccw: 'CCW',
     throwBtn: 'THROW', flying: 'Flying...', needGrip: 'Grab the hanger first!',
     title: 'HANGER TOSS', subtitle: '(prototype)',
     howto1: 'Click the hanger in the center panel to grab it.',
@@ -166,6 +166,15 @@ function t(k) {
   var d = STR[game.lang] || STR.ja;
   return d[k] !== undefined ? d[k] : (STR.ja[k] || k);
 }
+
+/* ---------- v31 (040): window color themes (all HUD panels + overlays change together) ---------- */
+var THEMES = [
+  { name: 'Teal',  panelBg: '#16424e', label: '#9fc4cc', flipBg: '#1d4a57', track: '#0d242c', overlayBg: '#12333d', overlayBorder: '#2a7f8f' },
+  { name: 'Navy',  panelBg: '#1b2f4d', label: '#a9c6e8', flipBg: '#24395c', track: '#0f1c2e', overlayBg: '#16233a', overlayBorder: '#2f5a8f' },
+  { name: 'Plum',  panelBg: '#3a2350', label: '#d3b8e6', flipBg: '#4a2d63', track: '#241433', overlayBg: '#2d1a3e', overlayBorder: '#7a4a9f' },
+  { name: 'Brown', panelBg: '#4a2c1c', label: '#e8c9a8', flipBg: '#5c3823', track: '#2e1a10', overlayBg: '#3a2214', overlayBorder: '#9f6a3a' }
+];
+function theme() { return THEMES[game.theme] || THEMES[0]; }
 
 /* ---------- audio (WebAudio synthesis only) ---------- */
 var actx = null, masterGain = null;
@@ -787,11 +796,23 @@ function loadBest() {
 function saveBest(v) {
   try { if (typeof localStorage !== 'undefined') localStorage.setItem('hanger-toss-best', String(v)); } catch (e) {}
 }
+
+function loadTheme() {
+  try {
+    if (typeof localStorage === 'undefined') return 0;
+    var v = parseInt(localStorage.getItem('hanger-toss-theme'), 10);
+    return (isNaN(v) || v < 0 || v >= THEMES.length) ? 0 : v;
+  } catch (e) { return 0; }
+}
+function saveTheme(v) {
+  try { if (typeof localStorage !== 'undefined') localStorage.setItem('hanger-toss-theme', String(v)); } catch (e) {}
+}
 var game = {
   state: 'title',           /* title | playing | clear */
   phase: 'ready',           /* ready | charging | guts (v26 (035): no 'hanging' phase — a hook resolves immediately, never blocks input) */
   paused: false, muted: false, lang: 'ja',
   angle: 45, power: 0, lastPower: 0,
+  theme: loadTheme(), /* v31 (040): window color theme index, 0-3 */
   grip: null, dNorm: 0,
   flip: false, /* v20 (027): true = right-facing (mirrored) hanger this game */
   stage: 0, /* v26 (035): index of the current stage's ○ in CATCH_POINTS */
@@ -1087,21 +1108,21 @@ function drawTitleStrip(ctx) {
 
 function drawHUD(ctx) {
   /* left panel: power */
-  ctx.fillStyle = '#16424e';
+  ctx.fillStyle = theme().panelBg;
   rr(ctx, 20, 32, 280, 106, 8); ctx.fill();
-  ctx.fillStyle = '#9fc4cc';
+  ctx.fillStyle = theme().label;
   ctx.font = '13px sans-serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
   ctx.fillText(t('power'), 40, 48);
   ctx.fillStyle = '#ffffff';
   ctx.font = 'bold 13px sans-serif'; ctx.textAlign = 'right';
   ctx.fillText(Math.round(dispPower()) + '%', 280, 48);
   ctx.textAlign = 'left';
-  ctx.fillStyle = '#0d242c';
+  ctx.fillStyle = theme().track;
   ctx.fillRect(40, 56, 240, 16);
   var pw = dispPower();
   ctx.fillStyle = pw < 34 ? '#4caf50' : (pw < 67 ? '#ffcf3f' : '#ff5252');
   if (pw > 0) ctx.fillRect(40, 56, 240 * pw / 100, 16);
-  ctx.fillStyle = '#9fc4cc';
+  ctx.fillStyle = theme().label;
   ctx.font = '12px sans-serif';
   ctx.fillText(t('throws'), 40, 92);
   drawHanger(ctx, 56, 108, 0, 0.15, { x: 0, y: 0 }, undefined, { color: '#f2f2f2', width: 6 * HANGER_SCALE }, game.flip); /* v16 (021): white panel hanger; v20 (027): mirrored when flipped */
@@ -1110,24 +1131,31 @@ function drawHUD(ctx) {
   ctx.fillText('× ' + game.throws, 76, 110);
   /* v26 (035): current stage under the throws count (stage = done count + 1, clamped at the last stage) */
   var stageN = Math.min(game.stage + 1, CATCH_POINTS.length);
-  ctx.fillStyle = '#9fc4cc';
+  ctx.fillStyle = theme().label;
   ctx.font = '12px sans-serif';
   ctx.fillText(t('stage') + ' ' + stageN + '/' + CATCH_POINTS.length, 40, 131);
-  ctx.fillStyle = '#9fc4cc';
+  ctx.fillStyle = theme().label;
   ctx.font = '13px sans-serif'; ctx.textAlign = 'right';
   ctx.fillText(t('best') + ' ' + (game.best === null ? '—' : game.best), 280, 110);
   ctx.textAlign = 'left';
 
+  /* v31 (040): theme chips below the power window (4 x 22x22, y 150-172). */
+  for (var ti = 0; ti < THEMES.length; ti++) {
+    ctx.fillStyle = THEMES[ti].panelBg;
+    rr(ctx, 40 + ti * 32, 150, 22, 22, 5); ctx.fill();
+    if (ti === game.theme) {
+      ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 2;
+      rr(ctx, 40 + ti * 32, 150, 22, 22, 5); ctx.stroke();
+    }
+  }
+  ctx.lineWidth = 1;
+
   /* center panel: grip */
-  ctx.fillStyle = '#16424e';
+  ctx.fillStyle = theme().panelBg;
   rr(ctx, 330, 32, 300, 106, 8); ctx.fill();
-  ctx.fillStyle = '#9fc4cc';
+  ctx.fillStyle = theme().label;
   ctx.font = '13px sans-serif';
-  ctx.fillText('GRIP', 342, 48);
-  ctx.fillStyle = game.grip ? '#7fd0ff' : '#9fc4cc';
-  ctx.textAlign = 'right';
-  ctx.fillText(game.grip ? t('gripDone') : t('gripHint'), 618, 48);
-  ctx.textAlign = 'left';
+  ctx.fillText(t('gripLabel'), 342, 48);
   /* v09: the panel hanger is never dimmed during flight */
   drawHanger(ctx, PANEL_C.x, PANEL_C.y, 0, PANEL_SCALE, { x: 0, y: 0 }, undefined, { color: '#f2f2f2', width: 6 * HANGER_SCALE }, game.flip); /* v16 (021): white panel hanger; v20 (027): mirrored when flipped */
   if (game.grip) {
@@ -1139,9 +1167,9 @@ function drawHUD(ctx) {
   }
   /* v29 (038): flip button inside the GRIP panel, bottom-right (568-618 x 110-132).
      Clear of the hanger wire (wire x ends ~512, grip-click halo ends ~542) and of the
-     'GRIP' label and grip-status text (both on the top row). Drawn only while playing. */
+     grip label (top row, v31 (040): no status text any more). Drawn only while playing. */
   if (game.state === 'playing') {
-    ctx.fillStyle = '#1d4a57';
+    ctx.fillStyle = theme().flipBg;
     rr(ctx, BTN_FLIP.x, BTN_FLIP.y, BTN_FLIP.w, BTN_FLIP.h, 5); ctx.fill();
     ctx.fillStyle = '#ffffff';
     ctx.font = '11px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
@@ -1150,9 +1178,9 @@ function drawHUD(ctx) {
   }
 
   /* right panel: angle */
-  ctx.fillStyle = '#16424e';
+  ctx.fillStyle = theme().panelBg;
   rr(ctx, 660, 32, 280, 106, 8); ctx.fill();
-  ctx.fillStyle = '#9fc4cc';
+  ctx.fillStyle = theme().label;
   ctx.font = '13px sans-serif'; ctx.textAlign = 'right';
   ctx.fillText(t('angle'), 930, 48);
   /* grid */
@@ -1181,7 +1209,7 @@ function drawHUD(ctx) {
   ctx.fillStyle = '#ffffff';
   ctx.font = 'bold 30px sans-serif'; ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
   ctx.fillText(game.angle.toFixed(1) + '°', 930, 78);
-  ctx.fillStyle = '#9fc4cc';
+  ctx.fillStyle = theme().label;
   ctx.font = '13px sans-serif';
   ctx.fillText(t('spin') + '：' + spinLabel() + (game.grip ? '・' + spinDirLabel() : ''), 930, 108);
   ctx.textAlign = 'left';
@@ -1412,9 +1440,9 @@ function drawThrowButton(ctx) {
 function drawOverlay(ctx, x, y, w, h) {
   ctx.fillStyle = 'rgba(11,30,36,0.55)';
   ctx.fillRect(0, 0, CV_W, CV_H);
-  ctx.fillStyle = '#12333d';
+  ctx.fillStyle = theme().overlayBg;
   rr(ctx, x, y, w, h, 12); ctx.fill();
-  ctx.strokeStyle = '#2a7f8f'; ctx.lineWidth = 2;
+  ctx.strokeStyle = theme().overlayBorder; ctx.lineWidth = 2;
   rr(ctx, x, y, w, h, 12); ctx.stroke();
 }
 
@@ -1433,13 +1461,13 @@ function draw() {
     ctx.fillStyle = '#ffffff'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     ctx.font = 'bold 44px sans-serif';
     ctx.fillText(t('title'), CV_W / 2, 190);
-    ctx.font = '18px sans-serif'; ctx.fillStyle = '#9fc4cc';
+    ctx.font = '18px sans-serif'; ctx.fillStyle = theme().label;
     ctx.fillText(t('subtitle'), CV_W / 2, 225);
     ctx.font = '15px sans-serif'; ctx.fillStyle = '#ffffff';
     ctx.fillText(t('howto1'), CV_W / 2, 258);
     ctx.fillText(t('howto2'), CV_W / 2, 282);
     ctx.fillText(t('howto3'), CV_W / 2, 306);
-    ctx.fillStyle = '#9fc4cc'; ctx.font = '14px sans-serif';
+    ctx.fillStyle = theme().label; ctx.font = '14px sans-serif';
     ctx.fillText(t('best') + ' ' + (game.best === null ? '—' : game.best), CV_W / 2, 336);
     ctx.fillStyle = '#e8862e';
     rr(ctx, START_BTN.x, START_BTN.y, START_BTN.w, START_BTN.h, 10); ctx.fill();
@@ -1454,7 +1482,7 @@ function draw() {
     ctx.font = '24px sans-serif';
     if (game.lang === 'ja') ctx.fillText(game.throws + t('clearThrows'), CV_W / 2, 250);
     else ctx.fillText(game.throws + t('clearThrows'), CV_W / 2, 250);
-    ctx.font = '18px sans-serif'; ctx.fillStyle = '#9fc4cc';
+    ctx.font = '18px sans-serif'; ctx.fillStyle = theme().label;
     ctx.fillText(t('best') + ' ' + (game.best === null ? '—' : game.best), CV_W / 2, 285);
     ctx.fillStyle = '#e8862e';
     rr(ctx, RETRY_BTN.x, RETRY_BTN.y, RETRY_BTN.w, RETRY_BTN.h, 10); ctx.fill();
@@ -1470,7 +1498,7 @@ function draw() {
     ctx.font = '15px sans-serif'; ctx.textAlign = 'left';
     var lines = t('helpBody').split('\n');
     for (var i = 0; i < lines.length; i++) ctx.fillText(lines[i], 210, 160 + i * 26);
-    ctx.fillStyle = '#9fc4cc'; ctx.font = '13px sans-serif';
+    ctx.fillStyle = theme().label; ctx.font = '13px sans-serif';
     ctx.fillText(t('keys'), 210, 160 + lines.length * 26 + 8);
     ctx.fillStyle = '#e8862e';
     rr(ctx, CLOSE_BTN.x, CLOSE_BTN.y, CLOSE_BTN.w, CLOSE_BTN.h, 8); ctx.fill();
@@ -1524,6 +1552,12 @@ if (canvas && ctx) {
     if (hitRect(p, BTN_HELP)) { game.showHelp = true; return; }
     if (hitRect(p, BTN_SND)) { toggleMute(); return; }
     if (hitRect(p, BTN_PAUSE)) { togglePause(); return; }
+    /* v31 (040): theme chips below the power window (y 150-172, x 40-158). */
+    for (var ci = 0; ci < THEMES.length; ci++) {
+      if (p.x >= 40 + ci * 32 && p.x <= 40 + ci * 32 + 22 && p.y >= 150 && p.y <= 172) {
+        game.theme = ci; saveTheme(ci); return;
+      }
+    }
     if (game.paused) { game.paused = false; return; }
     if (game.state === 'title') {
       if (hitRect(p, START_BTN)) startGame();
@@ -1594,7 +1628,7 @@ if (canvas && ctx) {
 /* ---------- debug / test hook (also used by the Node harness) ---------- */
 if (typeof globalThis !== 'undefined') {
   globalThis.HANGER_TOSS_DEBUG = {
-    version: 'v30',
+    version: 'v31',
     simulateThrow: simulateThrow,
     newFlight: newFlight,
     stepFlight: stepFlight,
