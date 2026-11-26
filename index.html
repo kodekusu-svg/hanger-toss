@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ja">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -1102,7 +1102,7 @@ function saveTheme(v) {
 var game = {
   state: 'playing',         /* playing | clear */
   phase: 'ready',           /* ready | charging | guts (v26 (035): no 'hanging' phase — a hook resolves immediately, never blocks input) */
-  paused: false, muted: false, lang: 'ja',
+  paused: false, muted: false, lang: 'en', /* v38 (047): English default — fresh load (no stored preference) starts in English; toggle still switches to Japanese */
   angle: 45, power: 0, lastPower: 0,
   theme: loadTheme(), /* v31 (040): window color theme index, 0-3 */
   grip: null, dNorm: 0,
@@ -2164,7 +2164,7 @@ if (canvas && ctx) {
 /* ---------- debug / test hook (also used by the Node harness) ---------- */
 if (typeof globalThis !== 'undefined') {
   globalThis.HANGER_TOSS_DEBUG = {
-    version: 'v37',
+    version: 'v38',
     simulateThrow: simulateThrow,
     newFlight: newFlight,
     stepFlight: stepFlight,
