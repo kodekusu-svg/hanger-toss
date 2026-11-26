@@ -100,6 +100,11 @@ var END_MODE_BTN = { x: 490, y: 310, w: 200, h: 50 };
 var VS_RETRY_BTN = { x: 250, y: 310, w: 140, h: 50 };
 var VS_MODE_BTN = { x: 410, y: 310, w: 140, h: 50 };
 var VS_NPC_BTN = { x: 570, y: 310, w: 140, h: 50 };
+/* v36 (045): share button on the result screens — below the y=310 buttons, inside the
+   230,100,500,340 overlay (bottom 440). Only on Normal clear / Endless over / VS win. */
+var SHARE_BTN = { x: 380, y: 375, w: 200, h: 40 };
+/* v36 (045): the link in the share text (switch to the CrazyGames URL after publication). */
+var GAME_URL = 'https://kodekusu-svg.github.io/hanger-toss/';
 /* v35 (044): Endless + VS constants. */
 var ENDLESS_THROWS_PER_RING = 5; /* provisional (仮): throws allowed per ○ in Endless */
 var ENDLESS_T_STEP = 0.10; /* provisional (仮): rod-t increase per Endless hook */
@@ -175,6 +180,7 @@ var STR = {
     roundWinYou: 'あなたのラウンド！', roundWinNpc: 'NPCのラウンド…',
     endlessOver: 'ゲームオーバー', changeNpc: '相手を変える', toModeSelect: 'モード選択へ',
     retryEndless: 'もう一度', retryVs: 'もう一度対戦',
+    share: 'シェア',
     helpBody: '1. 中央パネルのハンガーをクリックして掴む（掴む場所で回転が変わる）。\n2. 右の角度ウィンドウをクリック／ドラッグして角度を決める（10°〜80°）。\n3. 下の「投げる」ボタンを長押し→離して投げる。Spaceキーでも同じ。\n4. フックがポールの○に引っかかったら、その場でその○は成功。次のステージへ進む。3つのステージを全部クリアしたらクリア。\n5. 判定はかなりシビア。ワイヤーが○に当たると跳ね返る。○がフックの「？」の中にちょうど収まったときだけ引っかかる。ポールは○以外ただの背景。\n6. Rキー：飛行中のハンガーが複数あるときは一番新しい1本だけ落とす（投数は増えない）。\n7. ノーマルを3ステージクリアするとモード選択が出る。エンドレス（○がどんどん遠くなる）とVS（NPCと先に引っかけた方が勝ち）で遊べる。'
   },
   en: {
@@ -194,6 +200,7 @@ var STR = {
     roundWinYou: 'Your round!', roundWinNpc: 'NPC round...',
     endlessOver: 'GAME OVER', changeNpc: 'Change NPC', toModeSelect: 'Mode select',
     retryEndless: 'Retry', retryVs: 'Rematch',
+    share: 'Share',
     helpBody: '1. Click the hanger in the center panel to grab it (grip changes the spin).\n2. Click / drag the angle window to set the angle (10°-80°).\n3. Hold and release the THROW button (or Space) to throw.\n4. Hook a band on a pole and it counts at once. You move on to the next stage. Clear all 3 stages to win.\n5. The judgment is very strict. The wire bounces off the band. It only catches when the band center fits exactly inside the hook loop. The rest of the pole is just background.\n6. R: drop only the newest mid-flight hanger (no extra throw counted).\n7. Clear the 3 Normal stages to open the mode select. Endless (each hook moves the band further) and VS (first to hook beats the NPC) are there.'
   }
 };
@@ -975,6 +982,54 @@ function npcName(level) {
   if (level === 'weak') return t('npcWeak');
   if (level === 'strong') return t('npcStrong');
   return t('npcMid');
+}
+
+/* ---------- v36 (045): share result to SNS (clear / victory only) ---------- */
+/* The game never posts by itself (it needs the player's own SNS account);
+   it hands the result text + a screenshot to the player to post. */
+function shareResultText() {
+  if (game.clearScreen === 'endlessOver') {
+    if (game.lang === 'ja') return 'ハンガー投げ エンドレスで' + game.endScore + '個引っかけた！ #ハンガー投げ ' + GAME_URL;
+    return 'I hooked ' + game.endScore + ' hangers in Hanger Toss Endless! #HangerToss ' + GAME_URL;
+  }
+  if (game.clearScreen === 'vsResult' && game.vs) {
+    var n = npcName(game.vs.npc);
+    if (game.lang === 'ja') return 'ハンガー投げ VSで' + n + 'に勝利！ #ハンガー投げ ' + GAME_URL;
+    return 'I beat ' + n + ' in Hanger Toss VS! #HangerToss ' + GAME_URL;
+  }
+  /* default: Normal clear (the mode-select modal shows the clear result). */
+  if (game.lang === 'ja') return 'ハンガー投げ ノーマルを' + game.throws + '投でクリア！ #ハンガー投げ ' + GAME_URL;
+  return 'I cleared Hanger Toss Normal in ' + game.throws + ' throws! #HangerToss ' + GAME_URL;
+}
+function dataURLToBlob(dataURL) {
+  var parts = dataURL.split(',');
+  var mime = parts[0].match(/:(.*?);/)[1];
+  var bstr = atob(parts[1]);
+  var n = bstr.length, u8 = new Uint8Array(n);
+  for (var i = 0; i < n; i++) u8[i] = bstr.charCodeAt(i);
+  return new Blob([u8], { type: mime });
+}
+function shareResult() {
+  if (!canvas) return;
+  var text = shareResultText();
+  var dataURL = canvas.toDataURL('image/png');
+  var file = null;
+  try { file = new File([dataURLToBlob(dataURL)], 'hanger-toss-result.png', { type: 'image/png' }); } catch (e) { file = null; }
+  /* Mobile: Web Share API shares text + image in one tap. Desktop fallback:
+     download the screenshot and open the X share intent with the text pre-filled. */
+  if (file && typeof navigator !== 'undefined' && navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+    try {
+      var p = navigator.share({ text: text, files: [file] });
+      if (p && p.catch) p.catch(function () {});
+    } catch (e) {}
+    return;
+  }
+  try {
+    var a = document.createElement('a');
+    a.href = dataURL; a.download = 'hanger-toss-result.png';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  } catch (e) {}
+  try { window.open('https://twitter.com/intent/tweet?text=' + encodeURIComponent(text), '_blank'); } catch (e) {}
 }
 
 function loadTheme() {
@@ -1861,6 +1916,7 @@ function draw() {
       ctx.fillText(t('best') + ' ' + (game.endBest === null ? '—' : game.endBest), CV_W / 2, 250);
       drawModeBtn(ctx, END_RETRY_BTN, t('retryEndless'));
       drawModeBtn(ctx, END_MODE_BTN, t('toModeSelect'));
+      drawModeBtn(ctx, SHARE_BTN, t('share')); /* v36 (045): share on the Endless game-over screen */
     } else if (game.clearScreen === 'vsResult' && game.vs) {
       var youWon = game.vs.you > game.vs.npcWins;
       ctx.font = 'bold 38px sans-serif';
@@ -1872,6 +1928,7 @@ function draw() {
       drawModeBtn(ctx, VS_RETRY_BTN, t('retryVs'));
       drawModeBtn(ctx, VS_MODE_BTN, t('toModeSelect'));
       drawModeBtn(ctx, VS_NPC_BTN, t('changeNpc'));
+      if (youWon) drawModeBtn(ctx, SHARE_BTN, t('share')); /* v36 (045): share on VS win only, not on loss */
     } else {
       /* 'mode' (default): Normal clear result + mode select. */
       ctx.font = 'bold 38px sans-serif';
@@ -1885,6 +1942,7 @@ function draw() {
       drawModeBtn(ctx, MODE_BTN_N, t('modeNormal'));
       drawModeBtn(ctx, MODE_BTN_E, t('modeEndless'));
       drawModeBtn(ctx, MODE_BTN_V, t('modeVs'));
+      drawModeBtn(ctx, SHARE_BTN, t('share')); /* v36 (045): share on the Normal clear (mode-select) screen */
     }
     ctx.textAlign = 'left';
   }
@@ -1963,6 +2021,7 @@ if (canvas && ctx) {
         if (hitRect(p, MODE_BTN_N)) { startGame(); return; }
         if (hitRect(p, MODE_BTN_E)) { startEndless(); return; }
         if (hitRect(p, MODE_BTN_V)) { game.clearScreen = 'npc'; playClick(); return; }
+        if (hitRect(p, SHARE_BTN)) { shareResult(); return; } /* v36 (045) */
       } else if (game.clearScreen === 'npc') {
         if (hitRect(p, NPC_BTN_W)) { startVS('weak'); return; }
         if (hitRect(p, NPC_BTN_M)) { startVS('mid'); return; }
@@ -1971,10 +2030,12 @@ if (canvas && ctx) {
       } else if (game.clearScreen === 'endlessOver') {
         if (hitRect(p, END_RETRY_BTN)) { startEndless(); return; }
         if (hitRect(p, END_MODE_BTN)) { game.clearScreen = 'mode'; playClick(); return; }
+        if (hitRect(p, SHARE_BTN)) { shareResult(); return; } /* v36 (045) */
       } else if (game.clearScreen === 'vsResult') {
         if (hitRect(p, VS_RETRY_BTN)) { startVS(game.vs.npc); return; }
         if (hitRect(p, VS_MODE_BTN)) { game.clearScreen = 'mode'; playClick(); return; }
         if (hitRect(p, VS_NPC_BTN)) { game.clearScreen = 'npc'; playClick(); return; }
+        if (game.vs.you > game.vs.npcWins && hitRect(p, SHARE_BTN)) { shareResult(); return; } /* v36 (045): win only */
       }
       return;
     }
@@ -2039,7 +2100,7 @@ if (canvas && ctx) {
 /* ---------- debug / test hook (also used by the Node harness) ---------- */
 if (typeof globalThis !== 'undefined') {
   globalThis.HANGER_TOSS_DEBUG = {
-    version: 'v35',
+    version: 'v36',
     simulateThrow: simulateThrow,
     newFlight: newFlight,
     stepFlight: stepFlight,
@@ -2078,6 +2139,8 @@ if (typeof globalThis !== 'undefined') {
     setEndlessRing: setEndlessRing, /* v35 (044) */
     randomVsRing: randomVsRing, /* v35 (044) */
     npcName: npcName, /* v35 (044) */
+    shareResultText: shareResultText, shareResult: shareResult, /* v36 (045) */
+    GAME_URL: GAME_URL, SHARE_BTN: SHARE_BTN, /* v36 (045) */
     NPC_LEVELS: NPC_LEVELS, /* v35 (044) */
     NPC_GOOD_ANG_ERR: NPC_GOOD_ANG_ERR, NPC_GOOD_POW_ERR: NPC_GOOD_POW_ERR, /* v35 (044): tuned good-throw errors */
     ENDLESS_THROWS_PER_RING: ENDLESS_THROWS_PER_RING, /* v35 (044) */
