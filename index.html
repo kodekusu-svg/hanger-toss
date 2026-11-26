@@ -132,7 +132,7 @@ var STR = {
   ja: {
     power: 'パワー', throws: '投げた回数', best: 'ベスト', gripLabel: 'ハンガーのどこを持つか',
     angle: '投げる角度', spin: '回転', slow: '遅い', normal: '普通', fast: '速い', cw: '右回り', ccw: '左回り',
-    throwBtn: '投げる', flying: '飛行中...', needGrip: 'まずハンガーを掴んでね',
+    throwBtn: '投げる', needGrip: 'まずハンガーを掴んでね',
     title: 'ハンガー投げ', subtitle: '（仮）',
     howto1: '中央のハンガーをクリックして掴む。',
     howto2: '角度とパワーを決めて、ボタンを長押し→離して投げる。',
@@ -141,14 +141,14 @@ var STR = {
     start: 'スタート', clearTitle: '引っかかった！', clearThrows: '投でクリア！', retry: 'もう一度投げる',
     paused: '一時停止中', resume: '再開する', helpTitle: '遊び方', close: '閉じる',
     sndOn: '音 ON', sndOff: '音 OFF', pause: '一時停止', flip: '左右',
-    throwN: '投目', stage: 'ステージ', waiting: '次の投げの準備中...',
+    stage: 'ステージ', waiting: '次の投げの準備中...',
     keys: 'Space：投げる（長押しでパワー）　R：投げ直し　P：一時停止　M：音のON/OFF',
     helpBody: '1. 中央パネルのハンガーをクリックして掴む（掴む場所で回転が変わる）。\n2. 右の角度ウィンドウをクリック／ドラッグして角度を決める（10°〜80°）。\n3. 下の「投げる」ボタンを長押し→離して投げる。Spaceキーでも同じ。\n4. フックがポールの○に引っかかったら、その場でその○は成功。次のステージへ進む。3つのステージを全部クリアしたらクリア。\n5. 判定はかなりシビア。ワイヤーが○に当たると跳ね返る。○がフックの「？」の中にちょうど収まったときだけ引っかかる。ポールは○以外ただの背景。\n6. Rキー：飛行中のハンガーが複数あるときは一番新しい1本だけ落とす（投数は増えない）。'
   },
   en: {
     power: 'POWER', throws: 'THROWS', best: 'BEST', gripLabel: 'Where to hold the hanger',
     angle: 'THROW ANGLE', spin: 'Spin', slow: 'Slow', normal: 'Normal', fast: 'Fast', cw: 'CW', ccw: 'CCW',
-    throwBtn: 'THROW', flying: 'Flying...', needGrip: 'Grab the hanger first!',
+    throwBtn: 'THROW', needGrip: 'Grab the hanger first!',
     title: 'HANGER TOSS', subtitle: '(prototype)',
     howto1: 'Click the hanger in the center panel to grab it.',
     howto2: 'Set the angle and power, then hold and release the button to throw.',
@@ -157,7 +157,7 @@ var STR = {
     start: 'START', clearTitle: 'HOOKED!', clearThrows: ' throws to clear!', retry: 'Throw again',
     paused: 'PAUSED', resume: 'Resume', helpTitle: 'How to play', close: 'Close',
     sndOn: 'SND ON', sndOff: 'SND OFF', pause: 'Pause', flip: 'Flip',
-    throwN: 'Throw ', stage: 'Stage', waiting: 'Getting ready...',
+    stage: 'Stage', waiting: 'Getting ready...',
     keys: 'Space: throw (hold for power)  R: retry throw  P: pause  M: mute',
     helpBody: '1. Click the hanger in the center panel to grab it (grip changes the spin).\n2. Click / drag the angle window to set the angle (10°-80°).\n3. Hold and release the THROW button (or Space) to throw.\n4. Hook a band on a pole and it counts at once. You move on to the next stage. Clear all 3 stages to win.\n5. The judgment is very strict. The wire bounces off the band. It only catches when the band center fits exactly inside the hook loop. The rest of the pole is just background.\n6. R: drop only the newest mid-flight hanger (no extra throw counted).'
   }
@@ -168,11 +168,12 @@ function t(k) {
 }
 
 /* ---------- v31 (040): window color themes (all HUD panels + overlays change together) ---------- */
+/* v32 (041): each theme also has a bright `chip` color for the theme chips below the power window. */
 var THEMES = [
-  { name: 'Teal',  panelBg: '#16424e', label: '#9fc4cc', flipBg: '#1d4a57', track: '#0d242c', overlayBg: '#12333d', overlayBorder: '#2a7f8f' },
-  { name: 'Navy',  panelBg: '#1b2f4d', label: '#a9c6e8', flipBg: '#24395c', track: '#0f1c2e', overlayBg: '#16233a', overlayBorder: '#2f5a8f' },
-  { name: 'Plum',  panelBg: '#3a2350', label: '#d3b8e6', flipBg: '#4a2d63', track: '#241433', overlayBg: '#2d1a3e', overlayBorder: '#7a4a9f' },
-  { name: 'Brown', panelBg: '#4a2c1c', label: '#e8c9a8', flipBg: '#5c3823', track: '#2e1a10', overlayBg: '#3a2214', overlayBorder: '#9f6a3a' }
+  { name: 'Teal',  panelBg: '#16424e', label: '#9fc4cc', flipBg: '#1d4a57', track: '#0d242c', overlayBg: '#12333d', overlayBorder: '#2a7f8f', chip: '#2bb3a3' },
+  { name: 'Navy',  panelBg: '#1b2f4d', label: '#a9c6e8', flipBg: '#24395c', track: '#0f1c2e', overlayBg: '#16233a', overlayBorder: '#2f5a8f', chip: '#4a86e8' },
+  { name: 'Plum',  panelBg: '#3a2350', label: '#d3b8e6', flipBg: '#4a2d63', track: '#241433', overlayBg: '#2d1a3e', overlayBorder: '#7a4a9f', chip: '#a86bd8' },
+  { name: 'Brown', panelBg: '#4a2c1c', label: '#e8c9a8', flipBg: '#5c3823', track: '#2e1a10', overlayBg: '#3a2214', overlayBorder: '#9f6a3a', chip: '#e08a3a' }
 ];
 function theme() { return THEMES[game.theme] || THEMES[0]; }
 
@@ -1139,9 +1140,9 @@ function drawHUD(ctx) {
   ctx.fillText(t('best') + ' ' + (game.best === null ? '—' : game.best), 280, 110);
   ctx.textAlign = 'left';
 
-  /* v31 (040): theme chips below the power window (4 x 22x22, y 150-172). */
+  /* v31 (040): theme chips below the power window (4 x 22x22, y 150-172). v32 (041): bright chip colors. */
   for (var ti = 0; ti < THEMES.length; ti++) {
-    ctx.fillStyle = THEMES[ti].panelBg;
+    ctx.fillStyle = THEMES[ti].chip;
     rr(ctx, 40 + ti * 32, 150, 22, 22, 5); ctx.fill();
     if (ti === game.theme) {
       ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 2;
@@ -1424,17 +1425,7 @@ function drawThrowButton(ctx) {
   var label = game.phase === 'charging' ? t('power') + ' ' + Math.round(game.power) + '%' : t('throwBtn');
   ctx.fillText(label, THROW_BTN.x + THROW_BTN.w / 2, THROW_BTN.y + THROW_BTN.h / 2 + 1);
   ctx.textAlign = 'left';
-  /* status text */
-  ctx.fillStyle = '#33474d';
-  ctx.font = '13px sans-serif';
-  var status;
-  if (game.flights.length > 0) status = t('flying') + ' \u00d7' + game.flights.length;
-  else if (game.lang === 'ja') status = (game.throws + 1) + t('throwN') + '：' + game.angle.toFixed(1) + '° / ' + t('power') + ' ' + dispPower().toFixed(1) + '%';
-  else status = t('throwN') + (game.throws + 1) + ': ' + game.angle.toFixed(1) + '° / ' + t('power') + ' ' + dispPower().toFixed(1) + '%';
-  ctx.fillText(status, 12, 532);
-  ctx.textAlign = 'right';
-  ctx.fillText(t('best') + ' ' + (game.best === null ? '—' : game.best), 948, 532);
-  ctx.textAlign = 'left';
+  /* v32 (041): bottom status bar removed (angle/power + best already shown in the top panels). */
 }
 
 function drawOverlay(ctx, x, y, w, h) {
@@ -1628,7 +1619,7 @@ if (canvas && ctx) {
 /* ---------- debug / test hook (also used by the Node harness) ---------- */
 if (typeof globalThis !== 'undefined') {
   globalThis.HANGER_TOSS_DEBUG = {
-    version: 'v31',
+    version: 'v32',
     simulateThrow: simulateThrow,
     newFlight: newFlight,
     stepFlight: stepFlight,
