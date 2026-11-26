@@ -76,7 +76,7 @@ var HOOK_TOP = hs({ x: 0, y: -82 });
 var APEX = hs({ x: 0, y: -12 }), BODY_L = hs({ x: -85, y: 52 }), BODY_R = hs({ x: 85, y: 52 });
 var BAR_MID = hs({ x: 0, y: 52 });
 /* Layout (screen coords) */
-var PANEL_C = { x: 480, y: 88 }, PANEL_SCALE = 0.68; /* v09: 134px-tall hook fits the panel */ /* GRIP panel hanger */
+var PANEL_C = { x: 480, y: 110 }, PANEL_SCALE = 0.68; /* v34 (043): y 110 (was 88) — the hook top clears the GRIP label (hook-top ink ~63, label bottom ~55); triangle bottom ~141 stays inside the 126-tall panel */ /* GRIP panel hanger */
 var ANGLE_ORIGIN = { x: 680, y: 115 };               /* bottom-left of angle window */
 var ANGLE_GRID = { x0: 680, y0: 35, x1: 840, y1: 115 };
 var THROW_BTN = { x: 360, y: 480, w: 240, h: 50 };
@@ -84,7 +84,7 @@ var BTN_EN = { x: 700, y: 4, w: 45, h: 22 };
 var BTN_HELP = { x: 750, y: 4, w: 35, h: 22 };
 var BTN_SND = { x: 790, y: 4, w: 60, h: 22 };
 var BTN_PAUSE = { x: 855, y: 4, w: 90, h: 22 };
-var BTN_FLIP = { x: 568, y: 110, w: 50, h: 22 }; /* v29 (038): inside the GRIP panel (330-630 x 32-138), bottom-right; was in the title strip in v28 (037) */
+var BTN_FLIP = { x: 568, y: 110, w: 50, h: 22 }; /* v29 (038): inside the GRIP panel (330-630 x 32-158, v34 (043): was 32-138), bottom-right; was in the title strip in v28 (037) */
 var RETRY_BTN = { x: 380, y: 330, w: 200, h: 50 };
 var RESUME_BTN = { x: 380, y: 300, w: 200, h: 50 };
 var CLOSE_BTN = { x: 430, y: 400, w: 100, h: 40 };
@@ -1140,12 +1140,16 @@ function drawHUD(ctx) {
   }
   ctx.lineWidth = 1;
 
-  /* center panel: grip */
+  /* center panel: grip (v34 (043): 126 tall, was 106 — room for the hanger below the label) */
   ctx.fillStyle = theme().panelBg;
-  rr(ctx, 330, 32, 300, 106, 8); ctx.fill();
+  rr(ctx, 330, 32, 300, 126, 8); ctx.fill();
   ctx.fillStyle = theme().label;
   ctx.font = '13px sans-serif';
   ctx.fillText(t('gripLabel'), 342, 48);
+  /* v34 (043): spin readout moved here from the angle panel — spin is set by the grip, not the angle. Top-right (618,48), the old grip-status position. */
+  ctx.textAlign = 'right';
+  ctx.fillText(t('spin') + '：' + spinLabel() + (game.grip ? '・' + spinDirLabel() : ''), 618, 48);
+  ctx.textAlign = 'left';
   /* v09: the panel hanger is never dimmed during flight */
   drawHanger(ctx, PANEL_C.x, PANEL_C.y, 0, PANEL_SCALE, { x: 0, y: 0 }, undefined, { color: '#f2f2f2', width: 6 * HANGER_SCALE }, game.flip); /* v16 (021): white panel hanger; v20 (027): mirrored when flipped */
   if (game.grip) {
@@ -1157,7 +1161,7 @@ function drawHUD(ctx) {
   }
   /* v29 (038): flip button inside the GRIP panel, bottom-right (568-618 x 110-132).
      Clear of the hanger wire (wire x ends ~512, grip-click halo ends ~542) and of the
-     grip label (top row, v31 (040): no status text any more). Drawn only while playing. */
+     top row (GRIP label left, spin readout right, v34 (043)). Drawn only while playing. */
   if (game.state === 'playing') {
     ctx.fillStyle = theme().flipBg;
     rr(ctx, BTN_FLIP.x, BTN_FLIP.y, BTN_FLIP.w, BTN_FLIP.h, 5); ctx.fill();
@@ -1195,13 +1199,10 @@ function drawHUD(ctx) {
   ctx.closePath(); ctx.fill();
   ctx.beginPath(); ctx.arc(ANGLE_ORIGIN.x, ANGLE_ORIGIN.y, 3, 0, Math.PI * 2);
   ctx.fillStyle = '#ff7a1a'; ctx.fill();
-  /* degrees + spin readout */
+  /* degrees (v34 (043): spin readout moved to the GRIP panel) */
   ctx.fillStyle = '#ffffff';
   ctx.font = 'bold 30px sans-serif'; ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
   ctx.fillText(game.angle.toFixed(1) + '°', 930, 78);
-  ctx.fillStyle = theme().label;
-  ctx.font = '13px sans-serif';
-  ctx.fillText(t('spin') + '：' + spinLabel() + (game.grip ? '・' + spinDirLabel() : ''), 930, 108);
   ctx.textAlign = 'left';
 }
 
@@ -1530,7 +1531,7 @@ if (canvas && ctx) {
        phase (ready/charging/flight/guts), as in v28 (037). */
     if (game.state === 'playing' && hitRect(p, BTN_FLIP)) { toggleFlip(); return; }
     if (game.state === 'playing' && (game.phase === 'ready' || game.phase === 'charging')) {
-      if (p.x >= 330 && p.x <= 630 && p.y >= 32 && p.y <= 138) { tryGrip(p); return; }
+      if (p.x >= 330 && p.x <= 630 && p.y >= 32 && p.y <= 158) { tryGrip(p); return; } /* v34 (043): panel bottom 158 (was 138) */
       if (p.x >= ANGLE_GRID.x0 - 10 && p.x <= ANGLE_GRID.x1 + 10 && p.y >= ANGLE_GRID.y0 - 10 && p.y <= ANGLE_GRID.y1 + 10) {
         setAngleFromPoint(p);
         dragMode = 'angle';
@@ -1586,7 +1587,7 @@ if (canvas && ctx) {
 /* ---------- debug / test hook (also used by the Node harness) ---------- */
 if (typeof globalThis !== 'undefined') {
   globalThis.HANGER_TOSS_DEBUG = {
-    version: 'v33',
+    version: 'v34',
     simulateThrow: simulateThrow,
     newFlight: newFlight,
     stepFlight: stepFlight,
