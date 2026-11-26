@@ -103,6 +103,12 @@ var VS_NPC_BTN = { x: 570, y: 310, w: 140, h: 50 };
 /* v36 (045): share button on the result screens — below the y=310 buttons, inside the
    230,100,500,340 overlay (bottom 440). Only on Normal clear / Endless over / VS win. */
 var SHARE_BTN = { x: 380, y: 375, w: 200, h: 40 };
+/* v37 (046): copy-image button — right of the share button, same row, inside the
+   230,100,500,340 overlay (right edge 720, 10px from the overlay edge 730).
+   Same three result screens as SHARE_BTN. The Windows share sheet copies the
+   FILE and many apps cannot paste a file, so this copies the PNG image data
+   itself to the clipboard (pastes straight into X / Discord / LINE / chat apps). */
+var COPY_BTN = { x: 590, y: 375, w: 130, h: 40 };
 /* v36 (045): the link in the share text (switch to the CrazyGames URL after publication). */
 var GAME_URL = 'https://kodekusu-svg.github.io/hanger-toss/';
 /* v35 (044): Endless + VS constants. */
@@ -181,6 +187,7 @@ var STR = {
     endlessOver: 'ゲームオーバー', changeNpc: '相手を変える', toModeSelect: 'モード選択へ',
     retryEndless: 'もう一度', retryVs: 'もう一度対戦',
     share: 'シェア',
+    copyImage: '画像をコピー', copyDone: 'コピーした！', copyDl: '保存した', /* v37 (046): copy-image button + brief feedback labels */
     helpBody: '1. 中央パネルのハンガーをクリックして掴む（掴む場所で回転が変わる）。\n2. 右の角度ウィンドウをクリック／ドラッグして角度を決める（10°〜80°）。\n3. 下の「投げる」ボタンを長押し→離して投げる。Spaceキーでも同じ。\n4. フックがポールの○に引っかかったら、その場でその○は成功。次のステージへ進む。3つのステージを全部クリアしたらクリア。\n5. 判定はかなりシビア。ワイヤーが○に当たると跳ね返る。○がフックの「？」の中にちょうど収まったときだけ引っかかる。ポールは○以外ただの背景。\n6. Rキー：飛行中のハンガーが複数あるときは一番新しい1本だけ落とす（投数は増えない）。\n7. ノーマルを3ステージクリアするとモード選択が出る。エンドレス（○がどんどん遠くなる）とVS（NPCと先に引っかけた方が勝ち）で遊べる。'
   },
   en: {
@@ -201,6 +208,7 @@ var STR = {
     endlessOver: 'GAME OVER', changeNpc: 'Change NPC', toModeSelect: 'Mode select',
     retryEndless: 'Retry', retryVs: 'Rematch',
     share: 'Share',
+    copyImage: 'Copy image', copyDone: 'Copied!', copyDl: 'Saved', /* v37 (046): copy-image button + brief feedback labels */
     helpBody: '1. Click the hanger in the center panel to grab it (grip changes the spin).\n2. Click / drag the angle window to set the angle (10°-80°).\n3. Hold and release the THROW button (or Space) to throw.\n4. Hook a band on a pole and it counts at once. You move on to the next stage. Clear all 3 stages to win.\n5. The judgment is very strict. The wire bounces off the band. It only catches when the band center fits exactly inside the hook loop. The rest of the pole is just background.\n6. R: drop only the newest mid-flight hanger (no extra throw counted).\n7. Clear the 3 Normal stages to open the mode select. Endless (each hook moves the band further) and VS (first to hook beats the NPC) are there.'
   }
 };
@@ -1032,6 +1040,55 @@ function shareResult() {
   try { window.open('https://twitter.com/intent/tweet?text=' + encodeURIComponent(text), '_blank'); } catch (e) {}
 }
 
+/* ---------- v37 (046): copy the result screenshot image itself to the clipboard ----------
+   The Windows share sheet copies the FILE (hanger-toss-result.png) and many apps
+   cannot paste a file that way — the user pressed its copy button and nothing
+   could be pasted. Writing the PNG image data itself (ClipboardItem image/png)
+   pastes straight into X / Discord / LINE / chat apps.
+   Returns the clipboard.write promise when one is in flight (so the harness can
+   await it), else null. */
+function downloadScreenshot(dataURL) {
+  try {
+    var a = document.createElement('a');
+    a.href = dataURL; a.download = 'hanger-toss-result.png';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  } catch (e) {}
+}
+/* Brief button feedback: 'ok' = copied, 'dl' = fell back to a download. */
+function copyFeedback(kind) {
+  game.copyMsg = kind || 'ok';
+  game.copyMsgUntil = (game.time || 0) + 1.5;
+}
+function copyLabel() {
+  var now = game.time || 0;
+  if (game.copyMsg && now < (game.copyMsgUntil || 0)) {
+    return game.copyMsg === 'dl' ? t('copyDl') : t('copyDone');
+  }
+  return t('copyImage');
+}
+function copyImage() {
+  if (!canvas) return null;
+  var dataURL = canvas.toDataURL('image/png');
+  var blob = null;
+  try { blob = dataURLToBlob(dataURL); } catch (e) { blob = null; }
+  if (!blob) { downloadScreenshot(dataURL); copyFeedback('dl'); return null; }
+  if (typeof navigator !== 'undefined' && navigator.clipboard && navigator.clipboard.write && typeof ClipboardItem !== 'undefined') {
+    try {
+      var item = new ClipboardItem({ 'image/png': blob });
+      var p = navigator.clipboard.write([item]);
+      if (p && p.then) {
+        p.then(function () { copyFeedback('ok'); },
+               function () { downloadScreenshot(dataURL); copyFeedback('dl'); });
+        return p;
+      }
+      if (p) { copyFeedback('ok'); return p; }
+    } catch (e) { /* fall through to the download fallback below */ }
+  }
+  /* ClipboardItem unsupported or clipboard.write failed: download the screenshot
+     (same <a download> path as the share fallback) and say so on the button. */
+  downloadScreenshot(dataURL); copyFeedback('dl'); return null;
+}
+
 function loadTheme() {
   try {
     if (typeof localStorage === 'undefined') return 0;
@@ -1061,7 +1118,8 @@ var game = {
   chargeT: 0, flights: [],
   waitT: 0, gutsT: 0, standT: 0, swing: 0, throwPoseT: 0,
   failed: [], particles: [], hitStop: 0,
-  showHelp: false, bgmT: 0, bgmStep: 0, lastClank: 0
+  showHelp: false, bgmT: 0, bgmStep: 0, lastClank: 0,
+  copyMsg: null, copyMsgUntil: 0 /* v37 (046): copy-image button feedback ('ok' | 'dl') + its expiry (game.time) */
 };
 function spinLabel() {
   if (game.dNorm < 0.33) return t('slow');
@@ -1917,6 +1975,7 @@ function draw() {
       drawModeBtn(ctx, END_RETRY_BTN, t('retryEndless'));
       drawModeBtn(ctx, END_MODE_BTN, t('toModeSelect'));
       drawModeBtn(ctx, SHARE_BTN, t('share')); /* v36 (045): share on the Endless game-over screen */
+      drawModeBtn(ctx, COPY_BTN, copyLabel()); /* v37 (046): copy the screenshot image itself */
     } else if (game.clearScreen === 'vsResult' && game.vs) {
       var youWon = game.vs.you > game.vs.npcWins;
       ctx.font = 'bold 38px sans-serif';
@@ -1929,6 +1988,7 @@ function draw() {
       drawModeBtn(ctx, VS_MODE_BTN, t('toModeSelect'));
       drawModeBtn(ctx, VS_NPC_BTN, t('changeNpc'));
       if (youWon) drawModeBtn(ctx, SHARE_BTN, t('share')); /* v36 (045): share on VS win only, not on loss */
+      if (youWon) drawModeBtn(ctx, COPY_BTN, copyLabel()); /* v37 (046): copy image on VS win only, not on loss */
     } else {
       /* 'mode' (default): Normal clear result + mode select. */
       ctx.font = 'bold 38px sans-serif';
@@ -1943,6 +2003,7 @@ function draw() {
       drawModeBtn(ctx, MODE_BTN_E, t('modeEndless'));
       drawModeBtn(ctx, MODE_BTN_V, t('modeVs'));
       drawModeBtn(ctx, SHARE_BTN, t('share')); /* v36 (045): share on the Normal clear (mode-select) screen */
+      drawModeBtn(ctx, COPY_BTN, copyLabel()); /* v37 (046): copy the screenshot image itself */
     }
     ctx.textAlign = 'left';
   }
@@ -2022,6 +2083,7 @@ if (canvas && ctx) {
         if (hitRect(p, MODE_BTN_E)) { startEndless(); return; }
         if (hitRect(p, MODE_BTN_V)) { game.clearScreen = 'npc'; playClick(); return; }
         if (hitRect(p, SHARE_BTN)) { shareResult(); return; } /* v36 (045) */
+        if (hitRect(p, COPY_BTN)) { copyImage(); return; } /* v37 (046) */
       } else if (game.clearScreen === 'npc') {
         if (hitRect(p, NPC_BTN_W)) { startVS('weak'); return; }
         if (hitRect(p, NPC_BTN_M)) { startVS('mid'); return; }
@@ -2031,11 +2093,13 @@ if (canvas && ctx) {
         if (hitRect(p, END_RETRY_BTN)) { startEndless(); return; }
         if (hitRect(p, END_MODE_BTN)) { game.clearScreen = 'mode'; playClick(); return; }
         if (hitRect(p, SHARE_BTN)) { shareResult(); return; } /* v36 (045) */
+        if (hitRect(p, COPY_BTN)) { copyImage(); return; } /* v37 (046) */
       } else if (game.clearScreen === 'vsResult') {
         if (hitRect(p, VS_RETRY_BTN)) { startVS(game.vs.npc); return; }
         if (hitRect(p, VS_MODE_BTN)) { game.clearScreen = 'mode'; playClick(); return; }
         if (hitRect(p, VS_NPC_BTN)) { game.clearScreen = 'npc'; playClick(); return; }
         if (game.vs.you > game.vs.npcWins && hitRect(p, SHARE_BTN)) { shareResult(); return; } /* v36 (045): win only */
+        if (game.vs.you > game.vs.npcWins && hitRect(p, COPY_BTN)) { copyImage(); return; } /* v37 (046): win only */
       }
       return;
     }
@@ -2100,7 +2164,7 @@ if (canvas && ctx) {
 /* ---------- debug / test hook (also used by the Node harness) ---------- */
 if (typeof globalThis !== 'undefined') {
   globalThis.HANGER_TOSS_DEBUG = {
-    version: 'v36',
+    version: 'v37',
     simulateThrow: simulateThrow,
     newFlight: newFlight,
     stepFlight: stepFlight,
@@ -2140,7 +2204,8 @@ if (typeof globalThis !== 'undefined') {
     randomVsRing: randomVsRing, /* v35 (044) */
     npcName: npcName, /* v35 (044) */
     shareResultText: shareResultText, shareResult: shareResult, /* v36 (045) */
-    GAME_URL: GAME_URL, SHARE_BTN: SHARE_BTN, /* v36 (045) */
+    copyImage: copyImage, copyLabel: copyLabel, copyFeedback: copyFeedback, downloadScreenshot: downloadScreenshot, /* v37 (046) */
+    GAME_URL: GAME_URL, SHARE_BTN: SHARE_BTN, COPY_BTN: COPY_BTN, /* v36 (045); v37 (046) */
     NPC_LEVELS: NPC_LEVELS, /* v35 (044) */
     NPC_GOOD_ANG_ERR: NPC_GOOD_ANG_ERR, NPC_GOOD_POW_ERR: NPC_GOOD_POW_ERR, /* v35 (044): tuned good-throw errors */
     ENDLESS_THROWS_PER_RING: ENDLESS_THROWS_PER_RING, /* v35 (044) */
