@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ハンガー投げ（仮）</title>
+<title>ハンガー投げ</title>
 <style>
   html, body { margin: 0; padding: 0; background: #0b1e24; height: 100%; }
   body { display: flex; align-items: center; justify-content: center; }
@@ -1531,7 +1531,7 @@ function drawTitleStrip(ctx) {
   ctx.fillStyle = '#ffffff';
   ctx.font = 'bold 17px sans-serif';
   ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
-  ctx.fillText(game.lang === 'ja' ? 'HANGER TOSS　ハンガー投げ（仮）' : 'HANGER TOSS (prototype)', 16, 16);
+  ctx.fillText(game.lang === 'ja' ? 'HANGER TOSS　ハンガー投げ' : 'HANGER TOSS', 16, 16);
   /* top-right buttons: EN / ? / sound / pause */
   var btns = [
     { r: BTN_EN, label: game.lang === 'ja' ? 'EN' : 'JP' },
@@ -2164,7 +2164,7 @@ if (canvas && ctx) {
 /* ---------- debug / test hook (also used by the Node harness) ---------- */
 if (typeof globalThis !== 'undefined') {
   globalThis.HANGER_TOSS_DEBUG = {
-    version: 'v38',
+    version: 'v39',
     simulateThrow: simulateThrow,
     newFlight: newFlight,
     stepFlight: stepFlight,
